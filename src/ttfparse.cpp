@@ -15,6 +15,7 @@
 /*
  * References:
  *  https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+ *  https://github.com/nothings/stb/blob/master/stb_truetype.h
  */
 
 namespace ttf
@@ -111,9 +112,13 @@ class parser
         auto const cmap_format = get_value<std::uint16_t>(m_cmap_index);
         switch(cmap_format)
         {
+            case 0:
+                m_glyph_index_fn = &parser::format0_glyph_index;
             case 4:
                 m_glyph_index_fn = &parser::format4_glyph_index;
                 break;
+            case 6:
+                m_glyph_index_fn = &parser::format6_glyph_index;
 
             default:
                 break;
@@ -197,6 +202,16 @@ class parser
         return 0;
     }
 
+    std::uint16_t format0_glyph_index(int codepoint) const
+    {
+        auto const length = get_value<std::uint16_t>(m_cmap_index + 2);
+        if(codepoint < length-6)
+        {
+            return get_value<std::uint8_t>(m_cmap_index + 6 + codepoint);
+        }
+        return 0;
+    }
+
     std::uint16_t format4_glyph_index(int codepoint) const
     {
         if(codepoint > 0xFFFF) // Format 4 only handles BPM
@@ -247,6 +262,19 @@ class parser
         }
 
         return get_value<std::uint16_t>(end_code + offset + (codepoint-start)*2 + seg_count*6 + 2 + 2*item);
+    }
+
+    std::uint16_t format6_glyph_index(int codepoint) const
+    {
+        auto const first_code = get_value<std::uint16_t>(m_cmap_index + 6);
+        auto const entry_count = get_value<std::uint16_t>(m_cmap_index + 8);
+
+        if(codepoint >= first_code && codepoint < (first_code + entry_count))
+        {
+            return get_value<std::uint16_t>(m_cmap_index + 10 + (codepoint - first_code)*2);
+        }
+
+        return 0;
     }
 
     using glyph_index_fn_t = std::uint16_t (parser::*)(int) const;
