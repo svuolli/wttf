@@ -42,6 +42,17 @@ enum class platform_id: std::uint16_t
 static constexpr uint16_t windows_unicode_bmp_encoding_id = 1;
 static constexpr uint16_t windows_unicode_full_encoding_id = 10;
 
+enum simple_glyph_flags: uint8_t
+{
+    on_curve_point = 0x01,
+    x_short_vector = 0x02,
+    y_short_vector = 0x04,
+    repeat_flag = 0x08,
+    x_is_same_or_positive_x_short_vector = 0x10,
+    y_is_same_or_positive_y_short_vector = 0x20,
+    overlap_simple = 0x40
+};
+
 enum class composite_glyph_flags: uint16_t
 {
     arg_1_and_arg_2_are_words = 0x0001,
@@ -98,7 +109,7 @@ struct encoding_record
 
 struct glyph_header
 {
-    std::int16_t number_of_countours;
+    std::int16_t number_of_contours;
     std::int16_t x_min;
     std::int16_t y_min;
     std::int16_t x_max;
@@ -109,6 +120,68 @@ struct glyph_header
 class shape
 {
     public:
+    struct vertex
+    {
+        std::int16_t x;
+        std::int16_t y;
+        bool on_curve;
+    };
+
+    using contour = std::vector<vertex>;
+
+    shape() = default;
+    shape(shape const &) = default;
+    shape(shape &&) = default;
+    shape(
+        std::int16_t min_x, std::int16_t min_y,
+        std::int16_t max_x, std::int16_t max_y,
+        std::size_t contours):
+        m_contour{},
+        m_min_x{min_x},
+        m_min_y{min_y},
+        m_max_x{max_x},
+        m_max_y{max_y}
+    {
+        fmt::print(
+            "Shape: min_x: {}, min_y: {}, max_x: {}, max_y: {}\n",
+            m_min_x, m_min_y, m_max_x, m_max_y);
+        m_contour.reserve(contours);
+    }
+
+    ~shape() = default;
+
+    shape & operator=(shape const &) = default;
+    shape & operator=(shape &&) = default;
+
+    void add_contour()
+    {
+        fmt::print("Add contour {}\n", m_contour.size());
+        m_contour.emplace_back();
+    }
+
+    void add_contour(std::size_t s)
+    {
+        fmt::print("Add contour {}\n", m_contour.size());
+        m_contour.emplace_back();
+        m_contour.back().reserve(s);
+    }
+
+    void add_vertex(std::int16_t x, std::int16_t y, std::uint8_t flags)
+    {
+        auto const on_curve = (flags & simple_glyph_flags::on_curve_point) != 0;
+        fmt::print(
+            "Add vertex: x: {}, y: {}, {}\n",
+            x, y, on_curve ? "on curve" : "off curve");
+
+        m_contour.back().push_back({x, y, on_curve});
+    }
+
+    private:
+    std::vector<contour> m_contour;
+    std::int16_t m_min_x;
+    std::int16_t m_min_y;
+    std::int16_t m_max_x;
+    std::int16_t m_max_y;
 };
 
 class parser
@@ -167,18 +240,15 @@ class parser
         }
 
         auto const index_to_loc_format = get_value<std::uint16_t>(m_head + 50);
-        fmt::print("indexToLocFormat: {}\n", index_to_loc_format);
 
         TTF_ASSERT(index_to_loc_format < 2);
 
         if(index_to_loc_format == 0)
         {
-            fmt::print("loca format 0\n");
             m_glyph_offset_fn = &parser::format0_glyph_offset;
         }
         else if(index_to_loc_format == 1)
         {
-            fmt::print("loca format 1\n");
             m_glyph_offset_fn = &parser::format1_glyph_offset;
         }
 
@@ -206,11 +276,122 @@ class parser
 
         auto const gh = get_value<glyph_header>(*glyph_offs);
 
-        if(gh.number_of_countours > 0) // Simple description
+        if(gh.number_of_contours > 0) // Simple description
         {
-            fmt::print("Glyph {}, countours {}\n", glyph_index, gh.number_of_countours);
+            fmt::print(
+                "Glyph {}, countours {}\n",
+                glyph_index, gh.number_of_contours);
+
+            struct vertex
+            {
+                std::int16_t x{0};
+                std::int16_t y{0};
+                std::uint8_t flags{0};
+            };
+
+            auto const end_pts_of_countours_offset =
+                *glyph_offs + glyph_header::byte_size;
+            auto const instruction_length = get_value<std::uint16_t>(
+                end_pts_of_countours_offset + gh.number_of_contours * 2);
+
+            auto end_pts = data_cursor{*this, end_pts_of_countours_offset};
+            auto points = data_cursor{
+                *this,
+                end_pts_of_countours_offset + gh.number_of_contours* 2 + 2 + instruction_length};
+
+            auto const num_points =
+                std::size_t{1} +
+                end_pts.peek<std::uint16_t>((gh.number_of_contours-1) * 2);
+
+            auto vertices = std::vector<vertex>{num_points};
+
+            // Read flags
+            auto repeat = 0u;
+            auto current_flags = std::uint8_t{0};
+            for(auto i=0u; i < num_points; ++i)
+            {
+                if(repeat == 0)
+                {
+                    current_flags = points.read<std::uint8_t>();
+                    if(current_flags & 8)
+                    {
+                        repeat = points.read<std::uint8_t>();
+                    }
+                }
+                else
+                {
+                    --repeat;
+                }
+                vertices[i].flags = current_flags;
+            }
+
+            // Read x coordinates
+            auto current_x = std::int16_t{0};
+            for(auto i=0u; i < num_points; ++i)
+            {
+                auto & v = vertices[i];
+                current_flags = v.flags;
+                if(current_flags & simple_glyph_flags::x_short_vector)
+                {
+                    auto const x = points.read<std::uint8_t>();
+                    current_x +=
+                        (current_flags & simple_glyph_flags::x_is_same_or_positive_x_short_vector) ?
+                        x : -x;
+                }
+                else
+                {
+                    if(!(current_flags & simple_glyph_flags::x_is_same_or_positive_x_short_vector))
+                    {
+                        current_x += points.read<std::int16_t>();
+                    }
+                }
+                v.x = current_x;
+            }
+
+            // Read y coordinates
+            auto current_y = std::uint16_t{0};
+            for(auto i=0u; i < num_points; ++i)
+            {
+                auto & v = vertices[i];
+                current_flags = v.flags;
+                if(current_flags & simple_glyph_flags::y_short_vector)
+                {
+                    auto const y = points.read<std::uint8_t>();
+                    current_y +=
+                        (current_flags & simple_glyph_flags::y_is_same_or_positive_y_short_vector) ?
+                        y : -y;
+                }
+                else
+                {
+                    if(!(current_flags & simple_glyph_flags::y_is_same_or_positive_y_short_vector))
+                    {
+                        current_y += points.read<std::int16_t>();
+                    }
+                }
+                v.y = current_y;
+            }
+
+            auto s = shape{
+                gh.x_min,
+                gh.y_min,
+                gh.x_max,
+                gh.y_max,
+                static_cast<std::size_t>(gh.number_of_contours)};
+
+            auto next_contour = std::uint16_t{0};
+            for(auto i=0u; i < num_points; ++i)
+            {
+                if(next_contour == i)
+                {
+                    next_contour = end_pts.read<std::uint16_t>() + 1;
+                    s.add_contour(next_contour-i);
+                }
+
+                auto & v = vertices[i];
+                s.add_vertex(v.x, v.y, v.flags);
+            }
         }
-        else if(gh.number_of_countours < 0) // Composite description
+        else if(gh.number_of_contours < 0) // Composite description
         {
             fmt::print("Glyph {}, composite\n", glyph_index);
         }
@@ -225,7 +406,7 @@ class parser
     private:
     struct data_cursor
     {
-        data_cursor(parser & own, std::size_t offs):
+        data_cursor(parser const & own, std::size_t offs):
             owner(own), offset(offs)
         {}
 
@@ -249,7 +430,7 @@ class parser
             return owner.get_value<T>(offs);
         }
 
-        parser & owner;
+        parser const & owner;
         std::size_t offset;
     };
 
@@ -475,7 +656,9 @@ int main(int argc, char const * argv[])
     fmt::print("read file \"{}\", {} bytes\n", argv[1], contents.size());
 
     auto info = ttf::parser{std::move(contents)};
+    info.glyph_shape(info.glyph_index('O'));
 
+    /*
     for(auto cp = 32u; cp < 0xFFFF; ++cp)
     {
         auto const gi = info.glyph_index(cp);
@@ -485,6 +668,7 @@ int main(int argc, char const * argv[])
             info.glyph_shape(gi);
         }
     }
+    */
 
     return 0;
 }
