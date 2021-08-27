@@ -12,6 +12,15 @@
 #include <utility>
 #include <vector>
 
+#ifndef TTF_ASSERT
+#ifndef NDEBUG
+#include <cassert>
+#define TTF_ASSERT(x) assert(x)
+#else
+#define TTF_ASSERT(x)
+#endif
+#endif
+
 /*
  * References:
  *  https://docs.microsoft.com/en-us/typography/opentype/spec/otff
@@ -32,6 +41,23 @@ enum class platform_id: std::uint16_t
 
 static constexpr uint16_t windows_unicode_bmp_encoding_id = 1;
 static constexpr uint16_t windows_unicode_full_encoding_id = 10;
+
+enum class composite_glyph_flags: uint16_t
+{
+    arg_1_and_arg_2_are_words = 0x0001,
+    args_are_xy_values = 0x0002,
+    round_xy_to_grid = 0x004,
+    we_have_a_scale = 0x008,
+    more_components = 0x0020,
+    we_have_x_and_y_scale = 0x0040,
+    we_have_a_two_by_two = 0x0080,
+    we_have_instructions = 0x0100,
+    use_my_metrics = 0x0200,
+    overlap_compound = 0x0400,
+    scaled_component_offset = 0x0800,
+    unscaled_component_offset = 0x100,
+    reserved = 0xE010
+};
 
 using tag_t = std::array<std::uint8_t, 4>;
 
@@ -59,7 +85,7 @@ struct table_entry
     std::uint32_t checksum;
     std::uint32_t offset;
     std::uint32_t length;
-    static constexpr size_t byte_size = 16;
+    static constexpr std::size_t byte_size = 16;
 };
 
 struct encoding_record
@@ -67,7 +93,22 @@ struct encoding_record
     platform_id platform;
     std::uint16_t encoding_id;
     std::uint32_t subtable_offset;
-    static constexpr size_t byte_size = 8;
+    static constexpr std::size_t byte_size = 8;
+};
+
+struct glyph_header
+{
+    std::int16_t number_of_countours;
+    std::int16_t x_min;
+    std::int16_t y_min;
+    std::int16_t x_max;
+    std::int16_t y_max;
+    static constexpr std::size_t byte_size = 10;
+};
+
+class shape
+{
+    public:
 };
 
 class parser
@@ -84,6 +125,7 @@ class parser
         m_hmtx = find_table("hmtx");
         m_kern = find_table("kern");
         m_gpos = find_table("GPOS");
+        m_maxp = find_table("maxp");
 
         auto const num_cmap_tables = get_value<std::uint16_t>(m_cmap + 2);
 
@@ -123,6 +165,24 @@ class parser
             default:
                 break;
         }
+
+        auto const index_to_loc_format = get_value<std::uint16_t>(m_head + 50);
+        fmt::print("indexToLocFormat: {}\n", index_to_loc_format);
+
+        TTF_ASSERT(index_to_loc_format < 2);
+
+        if(index_to_loc_format == 0)
+        {
+            fmt::print("loca format 0\n");
+            m_glyph_offset_fn = &parser::format0_glyph_offset;
+        }
+        else if(index_to_loc_format == 1)
+        {
+            fmt::print("loca format 1\n");
+            m_glyph_offset_fn = &parser::format1_glyph_offset;
+        }
+
+        m_num_glyphs = m_maxp ? get_value<std::uint16_t>(m_maxp + 4) : 0xffff;
     }
 
     std::uint32_t version() const
@@ -138,7 +198,65 @@ class parser
         return 0;
     }
 
+    shape glyph_shape(std::uint16_t glyph_index) const
+    {
+        auto const glyph_offs = glyph_offset(glyph_index);
+        if(!glyph_offs)
+            return {};
+
+        auto const gh = get_value<glyph_header>(*glyph_offs);
+
+        if(gh.number_of_countours > 0) // Simple description
+        {
+            fmt::print("Glyph {}, countours {}\n", glyph_index, gh.number_of_countours);
+        }
+        else if(gh.number_of_countours < 0) // Composite description
+        {
+            fmt::print("Glyph {}, composite\n", glyph_index);
+        }
+        else
+        {
+            fmt::print("Glyph {}, no shape\n", glyph_index);
+        }
+
+        return {};
+    }
+
     private:
+    struct data_cursor
+    {
+        data_cursor(parser & own, std::size_t offs):
+            owner(own), offset(offs)
+        {}
+
+        data_cursor operator+=(std::size_t offs)
+        {
+            offset += offs;
+            return *this;
+        }
+
+        template <typename T>
+        T peek(std::size_t offs = 0) const
+        {
+            return owner.get_value<T>(offset+offs);
+        }
+
+        template <typename T>
+        T read()
+        {
+            auto const offs = offset;
+            offset += sizeof(T);
+            return owner.get_value<T>(offs);
+        }
+
+        parser & owner;
+        std::size_t offset;
+    };
+
+    using glyph_index_fn_t = std::uint16_t (parser::*)(int) const;
+    using glyph_offset_fn_t =
+        std::optional<std::uint32_t> (parser::*)(std::uint16_t) const;
+
     template <typename T>
     T get_value(std::size_t offset) const
     {
@@ -181,6 +299,17 @@ class parser
             get_value<platform_id>(offset+0),
             get_value<std::uint16_t>(offset+2),
             get_value<std::uint32_t>(offset+4) };
+    }
+
+    template<>
+    glyph_header get_value<glyph_header>(std::size_t offset) const
+    {
+        return glyph_header{
+            get_value<std::int16_t>(offset+0),
+            get_value<std::int16_t>(offset+2),
+            get_value<std::int16_t>(offset+4),
+            get_value<std::int16_t>(offset+6),
+            get_value<std::int16_t>(offset+8)};
     }
 
     std::uint32_t find_table(char const * tag, std::size_t extra_offset = 0) const
@@ -277,8 +406,36 @@ class parser
         return 0;
     }
 
-    using glyph_index_fn_t = std::uint16_t (parser::*)(int) const;
+    std::optional<std::uint32_t> format0_glyph_offset(std::uint16_t glyph_index) const
+    {
+        auto const g1 = m_glyf + get_value<std::uint16_t>(m_loca + glyph_index * 2) * 2;
+        auto const g2 = m_glyf + get_value<std::uint16_t>(m_loca + glyph_index * 2 + 2) * 2;
+
+        using ret_t = std::optional<std::uint32_t>;
+
+        return g1==g2 ? ret_t{} : ret_t{g1};
+    }
+
+    std::optional<std::uint32_t> format1_glyph_offset(std::uint16_t glyph_index) const
+    {
+        auto const g1 = m_glyf + get_value<std::uint32_t>(m_loca + glyph_index * 4);
+        auto const g2 = m_glyf + get_value<std::uint32_t>(m_loca + glyph_index * 4 + 4);
+
+        using ret_t = std::optional<std::uint32_t>;
+
+        return g1==g2 ? ret_t{} : ret_t{g1};
+    }
+
+    std::optional<std::uint32_t> glyph_offset(std::uint16_t glyph_index) const
+    {
+        if(glyph_index >= m_num_glyphs || m_glyph_offset_fn == nullptr)
+            return std::nullopt;
+
+        return std::invoke(m_glyph_offset_fn, this, glyph_index);
+    }
+
     glyph_index_fn_t m_glyph_index_fn{nullptr};
+    glyph_offset_fn_t m_glyph_offset_fn{nullptr};
 
     std::vector<std::byte> m_data;
     std::uint32_t m_cmap{0};
@@ -289,8 +446,10 @@ class parser
     std::uint32_t m_hmtx{0};
     std::uint32_t m_kern{0};
     std::uint32_t m_gpos{0};
+    std::uint32_t m_maxp{0};
 
     std::uint32_t m_cmap_index{0};
+    std::uint16_t m_num_glyphs{0};
 };
 
 }
@@ -322,7 +481,8 @@ int main(int argc, char const * argv[])
         auto const gi = info.glyph_index(cp);
         if(gi)
         {
-            fmt::print("cp: {}, gi: {}\n", cp, gi);
+            // fmt::print("cp: {}, gi: {}\n", cp, gi);
+            info.glyph_shape(gi);
         }
     }
 
