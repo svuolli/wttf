@@ -127,7 +127,7 @@ class shape
         bool on_curve;
     };
 
-    using contour = std::vector<vertex>;
+    using contour_t = std::vector<vertex>;
 
     shape() = default;
     shape(shape const &) = default;
@@ -136,16 +136,13 @@ class shape
         std::int16_t min_x, std::int16_t min_y,
         std::int16_t max_x, std::int16_t max_y,
         std::size_t contours):
-        m_contour{},
+        m_contours{},
         m_min_x{min_x},
         m_min_y{min_y},
         m_max_x{max_x},
         m_max_y{max_y}
     {
-        fmt::print(
-            "Shape: min_x: {}, min_y: {}, max_x: {}, max_y: {}\n",
-            m_min_x, m_min_y, m_max_x, m_max_y);
-        m_contour.reserve(contours);
+        m_contours.reserve(contours);
     }
 
     ~shape() = default;
@@ -155,29 +152,41 @@ class shape
 
     void add_contour()
     {
-        fmt::print("Add contour {}\n", m_contour.size());
-        m_contour.emplace_back();
+        m_contours.emplace_back();
     }
 
     void add_contour(std::size_t s)
     {
-        fmt::print("Add contour {}\n", m_contour.size());
-        m_contour.emplace_back();
-        m_contour.back().reserve(s);
+        m_contours.emplace_back();
+        m_contours.back().reserve(s);
     }
 
     void add_vertex(std::int16_t x, std::int16_t y, std::uint8_t flags)
     {
         auto const on_curve = (flags & simple_glyph_flags::on_curve_point) != 0;
-        fmt::print(
-            "Add vertex: x: {}, y: {}, {}\n",
-            x, y, on_curve ? "on curve" : "off curve");
 
-        m_contour.back().push_back({x, y, on_curve});
+        m_contours.back().push_back({x, y, on_curve});
     }
 
+    std::size_t num_contours() const
+    {
+        return m_contours.size();
+    }
+
+    contour_t const & contour(std::size_t i) const
+    {
+        return m_contours[i];
+    }
+
+    std::int16_t min_x() const { return m_min_x; }
+    std::int16_t min_y() const { return m_min_y; }
+    std::int16_t max_x() const { return m_max_x; }
+    std::int16_t max_y() const { return m_max_y; }
+    std::int16_t width() const { return m_max_x - m_min_x; }
+    std::int16_t height() const { return m_max_y - m_min_y; }
+
     private:
-    std::vector<contour> m_contour;
+    std::vector<contour_t> m_contours;
     std::int16_t m_min_x;
     std::int16_t m_min_y;
     std::int16_t m_max_x;
@@ -278,10 +287,6 @@ class parser
 
         if(gh.number_of_contours > 0) // Simple description
         {
-            fmt::print(
-                "Glyph {}, countours {}\n",
-                glyph_index, gh.number_of_contours);
-
             struct vertex
             {
                 std::int16_t x{0};
@@ -390,6 +395,8 @@ class parser
                 auto & v = vertices[i];
                 s.add_vertex(v.x, v.y, v.flags);
             }
+
+            return s;
         }
         else if(gh.number_of_contours < 0) // Composite description
         {
@@ -635,6 +642,80 @@ class parser
 
 }
 
+auto const html_head = 
+R"html(
+
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="{}" height="{}" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML canvas tag.</canvas>
+
+<script>
+var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+ctx.scale(0.5, -0.5);
+ctx.translate({}, {});
+
+)html";
+
+auto const html_foot =
+R"html(
+
+</script>
+
+</body>
+</html>
+)html";
+
+void draw_contour(ttf::shape::contour_t const & c)
+{
+    fmt::print("ctx.beginPath();\n");
+    fmt::print("ctx.moveTo({}, {});\n", c[0].x, c[0].y);
+
+    auto prev_on_curve = true;
+    auto cx = 0;
+    auto cy = 0;
+    for(auto i = 1u; i < c.size(); ++i)
+    {
+        auto const & v = c[i];
+        if(v.on_curve)
+        {
+            if(prev_on_curve)
+            {
+                fmt::print("ctx.lineTo({}, {});\n", v.x, v.y);
+            }
+            else
+            {
+                fmt::print("ctx.quadraticCurveTo({}, {}, {}, {});\n", cx, cy, v.x, v.y);
+            }
+        }
+        else
+        {
+            if(!prev_on_curve)
+            {
+                fmt::print("ctx.quadraticCurveTo({}, {}, {}, {});\n", cx, cy, (v.x+cx)/2, (v.y+cy)/2);
+            }
+            cx = v.x;
+            cy = v.y;
+        }
+        prev_on_curve = v.on_curve;
+    }
+
+    auto const & v = c[0];
+    if(prev_on_curve)
+    {
+        fmt::print("ctx.lineTo({}, {});\n", v.x, v.y);
+    }
+    else
+    {
+        fmt::print("ctx.quadraticCurveTo({}, {}, {}, {});\n", cx, cy, v.x, v.y);
+    }
+
+    fmt::print("ctx.stroke();\n\n");
+}
+
 int main(int argc, char const * argv[])
 {
     if(argc < 2)
@@ -653,22 +734,17 @@ int main(int argc, char const * argv[])
         std::back_insert_iterator{contents},
         [](auto c) { return static_cast<std::byte>(c); });
 
-    fmt::print("read file \"{}\", {} bytes\n", argv[1], contents.size());
-
     auto info = ttf::parser{std::move(contents)};
-    info.glyph_shape(info.glyph_index('O'));
+    auto const s = info.glyph_shape(info.glyph_index('@'));
 
-    /*
-    for(auto cp = 32u; cp < 0xFFFF; ++cp)
+    fmt::print(html_head, (s.width()+1)/2, (s.height()+2)/2, -s.min_x(), -s.max_y());
+
+    for(auto i=0; i < s.num_contours(); ++i)
     {
-        auto const gi = info.glyph_index(cp);
-        if(gi)
-        {
-            // fmt::print("cp: {}, gi: {}\n", cp, gi);
-            info.glyph_shape(gi);
-        }
+        draw_contour(s.contour(i));
     }
-    */
+
+    fmt::print(html_foot);
 
     return 0;
 }
