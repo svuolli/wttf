@@ -31,46 +31,6 @@
 namespace ttf
 {
 
-enum class platform_id: std::uint16_t
-{
-    unicode = 0,
-    macintosh = 1,
-    iso = 2,
-    windows = 3,
-    custom = 4
-};
-
-static constexpr uint16_t windows_unicode_bmp_encoding_id = 1;
-static constexpr uint16_t windows_unicode_full_encoding_id = 10;
-
-enum simple_glyph_flags: uint8_t
-{
-    on_curve_point = 0x01,
-    x_short_vector = 0x02,
-    y_short_vector = 0x04,
-    repeat_flag = 0x08,
-    x_is_same_or_positive_x_short_vector = 0x10,
-    y_is_same_or_positive_y_short_vector = 0x20,
-    overlap_simple = 0x40
-};
-
-enum composite_glyph_flags: uint16_t
-{
-    arg_1_and_arg_2_are_words = 0x0001,
-    args_are_xy_values = 0x0002,
-    round_xy_to_grid = 0x004,
-    we_have_a_scale = 0x008,
-    more_components = 0x0020,
-    we_have_x_and_y_scale = 0x0040,
-    we_have_a_two_by_two = 0x0080,
-    we_have_instructions = 0x0100,
-    use_my_metrics = 0x0200,
-    overlap_compound = 0x0400,
-    scaled_component_offset = 0x0800,
-    unscaled_component_offset = 0x100,
-    reserved = 0xE010
-};
-
 using tag_t = std::array<std::uint8_t, 4>;
 using matrix_2x2 = std::array<float, 2*2>;
 
@@ -91,51 +51,6 @@ struct transform
 
         return {ox, oy};
     }
-};
-
-tag_t tag_from_c_string(char const * str)
-{
-    assert(std::strlen(str) == 4);
-
-    auto begin = reinterpret_cast<std::uint8_t const *>(str);
-    return tag_t{begin[0], begin[1], begin[2], begin[3]};
-}
-
-std::string to_string(tag_t t)
-{
-    std::string s;
-    for(auto b: t)
-    {
-        s += static_cast<char>(b);
-    }
-    return s;
-}
-
-struct table_entry
-{
-    tag_t tag;
-    std::uint32_t checksum;
-    std::uint32_t offset;
-    std::uint32_t length;
-    static constexpr std::size_t byte_size = 16;
-};
-
-struct encoding_record
-{
-    platform_id platform;
-    std::uint16_t encoding_id;
-    std::uint32_t subtable_offset;
-    static constexpr std::size_t byte_size = 8;
-};
-
-struct glyph_header
-{
-    std::int16_t number_of_contours;
-    std::int16_t x_min;
-    std::int16_t y_min;
-    std::int16_t x_max;
-    std::int16_t y_max;
-    static constexpr std::size_t byte_size = 10;
 };
 
 class shape
@@ -201,10 +116,8 @@ class shape
         m_contours.back().reserve(s);
     }
 
-    void add_vertex(std::int16_t x, std::int16_t y, std::uint8_t flags)
+    void add_vertex(std::int16_t x, std::int16_t y, bool on_curve)
     {
-        auto const on_curve = (flags & simple_glyph_flags::on_curve_point) != 0;
-
         m_contours.back().push_back({x, y, on_curve});
     }
 
@@ -246,6 +159,9 @@ class parser
     parser(std::vector<std::byte> && d):
         m_data(std::forward<decltype(m_data)>(d))
     {
+        // TODO: assert that version() is one of the supported ones
+        // But which ones are supported?
+
         m_cmap = find_table("cmap");
         m_loca = find_table("loca");
         m_head = find_table("head");
@@ -279,7 +195,9 @@ class parser
                     break;
             }
         }
+        TTF_ASSERT(m_cmap_index != 0);
 
+        // Format of cmap
         switch(get_value<std::uint16_t>(m_cmap_index))
         {
             case 0:
@@ -296,6 +214,7 @@ class parser
                 break;
         }
 
+        // Format of loca table
         switch(get_value<std::uint16_t>(m_head + 50))
         {
             case 0:
@@ -352,6 +271,73 @@ class parser
     }
 
     private:
+    enum class platform_id: std::uint16_t
+    {
+        unicode = 0,
+        macintosh = 1,
+        iso = 2,
+        windows = 3,
+        custom = 4
+    };
+
+    static constexpr uint16_t windows_unicode_bmp_encoding_id = 1;
+    static constexpr uint16_t windows_unicode_full_encoding_id = 10;
+
+    enum simple_glyph_flags: uint8_t
+    {
+        on_curve_point = 0x01,
+        x_short_vector = 0x02,
+        y_short_vector = 0x04,
+        repeat_flag = 0x08,
+        x_is_same_or_positive_x_short_vector = 0x10,
+        y_is_same_or_positive_y_short_vector = 0x20,
+        overlap_simple = 0x40
+    };
+
+    enum composite_glyph_flags: uint16_t
+    {
+        arg_1_and_arg_2_are_words = 0x0001,
+        args_are_xy_values = 0x0002,
+        round_xy_to_grid = 0x004,
+        we_have_a_scale = 0x008,
+        more_components = 0x0020,
+        we_have_x_and_y_scale = 0x0040,
+        we_have_a_two_by_two = 0x0080,
+        we_have_instructions = 0x0100,
+        use_my_metrics = 0x0200,
+        overlap_compound = 0x0400,
+        scaled_component_offset = 0x0800,
+        unscaled_component_offset = 0x100,
+        reserved = 0xE010
+    };
+
+    struct table_entry
+    {
+        tag_t tag;
+        std::uint32_t checksum;
+        std::uint32_t offset;
+        std::uint32_t length;
+        static constexpr std::size_t byte_size = 16;
+    };
+
+    struct encoding_record
+    {
+        platform_id platform;
+        std::uint16_t encoding_id;
+        std::uint32_t subtable_offset;
+        static constexpr std::size_t byte_size = 8;
+    };
+
+    struct glyph_header
+    {
+        std::int16_t number_of_contours;
+        std::int16_t x_min;
+        std::int16_t y_min;
+        std::int16_t x_max;
+        std::int16_t y_max;
+        static constexpr std::size_t byte_size = 10;
+    };
+
     struct data_cursor
     {
         data_cursor(parser const & own, std::size_t offs):
@@ -381,6 +367,14 @@ class parser
         parser const & owner;
         std::size_t offset;
     };
+
+    static tag_t tag_from_c_string(char const * str)
+    {
+        TTF_ASSERT(std::strlen(str) == 4);
+
+        auto begin = reinterpret_cast<std::uint8_t const *>(str);
+        return tag_t{begin[0], begin[1], begin[2], begin[3]};
+    }
 
     using glyph_index_fn_t = std::uint16_t (parser::*)(int) const;
     using glyph_offset_fn_t =
@@ -673,7 +667,7 @@ class parser
             }
 
             auto & v = vertices[i];
-            s.add_vertex(v.x, v.y, v.flags);
+            s.add_vertex(v.x, v.y, v.flags & simple_glyph_flags::on_curve_point);
         }
 
         return s;
