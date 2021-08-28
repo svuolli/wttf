@@ -31,23 +31,22 @@
 namespace ttf
 {
 
-using tag_t = std::array<std::uint8_t, 4>;
 using matrix_2x2 = std::array<float, 2*2>;
 
 struct transform
 {
     matrix_2x2 m{1.0f, 0.0f, 0.0f, 1.0f};
-    std::int16_t tx{0};
-    std::int16_t ty{0};
+    float tx{0};
+    float ty{0};
 
-    constexpr std::pair<std::int16_t, std::int16_t>
-    apply(std::int16_t const x, std::int16_t const y) const
+    constexpr std::pair<float, float>
+    apply(float const x, float const y) const
     {
         auto const sx = std::sqrtf(m[0]*m[0] + m[1]*m[1]);
         auto const sy = std::sqrtf(m[2]*m[2] + m[3]*m[3]);
 
-        auto ox = static_cast<std::int16_t>(sx * (m[0]*x + m[2]*y + tx));
-        auto oy = static_cast<std::int16_t>(sy * (m[1]*x + m[3]*y + ty));
+        auto ox = sx * (m[0]*x + m[2]*y + tx);
+        auto oy = sy * (m[1]*x + m[3]*y + ty);
 
         return {ox, oy};
     }
@@ -58,8 +57,8 @@ class shape
     public:
     struct vertex
     {
-        std::int16_t x;
-        std::int16_t y;
+        float x;
+        float y;
         bool on_curve;
     };
 
@@ -69,8 +68,8 @@ class shape
     shape(shape const &) = default;
     shape(shape &&) = default;
     shape(
-        std::int16_t min_x, std::int16_t min_y,
-        std::int16_t max_x, std::int16_t max_y,
+        float min_x, float min_y,
+        float max_x, float max_y,
         std::size_t contours):
         m_contours{},
         m_min_x{min_x},
@@ -96,12 +95,12 @@ class shape
         return m_contours[i];
     }
 
-    std::int16_t min_x() const { return m_min_x; }
-    std::int16_t min_y() const { return m_min_y; }
-    std::int16_t max_x() const { return m_max_x; }
-    std::int16_t max_y() const { return m_max_y; }
-    std::int16_t width() const { return m_max_x - m_min_x; }
-    std::int16_t height() const { return m_max_y - m_min_y; }
+    float min_x() const { return m_min_x; }
+    float min_y() const { return m_min_y; }
+    float max_x() const { return m_max_x; }
+    float max_y() const { return m_max_y; }
+    float width() const { return m_max_x - m_min_x; }
+    float height() const { return m_max_y - m_min_y; }
 
     bool empty() const { return m_contours.empty(); }
 
@@ -116,8 +115,9 @@ class shape
         m_contours.back().reserve(s);
     }
 
-    void add_vertex(std::int16_t x, std::int16_t y, bool on_curve)
+    void add_vertex(float x, float y, bool on_curve)
     {
+        m_flat |= !on_curve;
         m_contours.back().push_back({x, y, on_curve});
     }
 
@@ -145,12 +145,37 @@ class shape
         }
     }
 
+    void transform(ttf::transform const & t)
+    {
+        if(empty())
+            return;
+
+        auto const minp = t.apply(m_min_x, m_min_y);
+        auto const maxp = t.apply(m_max_x, m_max_y);
+
+        m_min_x = minp.first;
+        m_min_y = minp.second;
+        m_max_x = maxp.first;
+        m_max_y = maxp.second;
+
+        for(auto & cont: m_contours)
+        {
+            for(auto & v1: cont)
+            {
+                auto v2 = t.apply(v1.x, v1.y);
+                v1.x = v2.first;
+                v1.y = v2.second;
+            }
+        }
+    }
+
     private:
     std::vector<contour_t> m_contours;
-    std::int16_t m_min_x;
-    std::int16_t m_min_y;
-    std::int16_t m_max_x;
-    std::int16_t m_max_y;
+    float m_min_x;
+    float m_min_y;
+    float m_max_x;
+    float m_max_y;
+    bool m_flat{true};
 };
 
 class parser
@@ -264,13 +289,13 @@ class parser
         }
         else
         {
-            fmt::print("Glyph {}, no shape\n", glyph_index);
+            return {};
         }
-
-        return {};
     }
 
     private:
+    using tag_t = std::array<std::uint8_t, 4>;
+
     enum class platform_id: std::uint16_t
     {
         unicode = 0,
@@ -651,11 +676,11 @@ class parser
         }
 
         auto s = shape{
-            gh.x_min,
-                gh.y_min,
-                gh.x_max,
-                gh.y_max,
-                static_cast<std::size_t>(gh.number_of_contours)};
+            static_cast<float>(gh.x_min),
+            static_cast<float>(gh.y_min),
+            static_cast<float>(gh.x_max),
+            static_cast<float>(gh.y_max),
+            static_cast<std::size_t>(gh.number_of_contours)};
 
         auto next_contour = std::uint16_t{0};
         for(auto i=0u; i < num_points; ++i)
