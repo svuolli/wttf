@@ -1,7 +1,6 @@
 #ifndef TTF_SHAPE_HPP
 #define TTF_SHAPE_HPP
 
-#include <ttf/assert.hpp>
 #include <ttf/transform.hpp>
 
 #include <vector>

@@ -2,6 +2,7 @@ add_executable(ttfparse)
 target_sources(
     ttfparse PRIVATE
     shape.cpp
+    typeface.cpp
     ttfparse.cpp)
 target_link_libraries(
     ttfparse PRIVATE
