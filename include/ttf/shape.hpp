@@ -1,7 +1,7 @@
 #ifndef TTF_SHAPE_HPP
 #define TTF_SHAPE_HPP
 
-#include <ttf/transform.hpp>
+#include "transform.hpp"
 
 #include <vector>
 
@@ -52,6 +52,7 @@ class shape
     [[nodiscard]] float max_y() const { return m_max_y; }
     [[nodiscard]] float width() const { return m_max_x - m_min_x; }
     [[nodiscard]] float height() const { return m_max_y - m_min_y; }
+    [[nodiscard]] bool flat() const { return m_flat; }
 
     void add_contour(std::size_t s = 0);
     void add_vertex(float x, float y, bool on_curve);
@@ -59,6 +60,9 @@ class shape
     void transform(ttf::transform const & t);
 
     [[nodiscard]] shape flatten(float const flatness) const;
+
+    [[nodiscard]] auto begin() const { return m_contours.begin(); }
+    [[nodiscard]] auto end() const { return m_contours.end(); }
 
     private:
     void add_tesselated_curve(

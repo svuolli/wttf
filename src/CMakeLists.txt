@@ -1,6 +1,7 @@
 add_executable(ttfparse)
 target_sources(
     ttfparse PRIVATE
+    rasterizer.cpp
     shape.cpp
     typeface.cpp
     ttfparse.cpp)

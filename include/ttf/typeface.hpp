@@ -1,7 +1,7 @@
 #ifndef TTF_TYPEFACE_HPP
 #define TTF_TYPEFACE_HPP
 
-#include <ttf/shape.hpp>
+#include "shape.hpp"
 
 #include <cstddef>
 #include <memory>

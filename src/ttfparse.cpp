@@ -1,6 +1,7 @@
 #include <ttf/transform.hpp>
 #include <ttf/shape.hpp>
 #include <ttf/typeface.hpp>
+#include <ttf/rasterizer.hpp>
 
 #include <fmt/format.h>
 
@@ -115,7 +116,7 @@ void draw_contour(ttf::shape::contour_t const & c)
 
 int main(int argc, char const * argv[])
 {
-    if(argc < 2)
+    if(argc < 3)
     {
         std::cerr << fmt::format("{}: too few arguments\n", argv[0]);
         return -1;
@@ -135,6 +136,7 @@ int main(int argc, char const * argv[])
     auto const s_b = fnt.glyph_shape(fnt.glyph_index('@'));
     auto const s = s_b.flatten(0.5f);
 
+    /*
     fmt::print(html_head, (s.width()+1)/2, (s.height()+2)/2, -s.min_x(), -s.max_y());
 
     for(auto i=0; i < s.num_contours(); ++i)
@@ -143,6 +145,22 @@ int main(int argc, char const * argv[])
     }
 
     fmt::print(html_foot);
+    */
+
+    auto const w = static_cast<std::size_t>(s.width() + 1);
+    auto const h = static_cast<std::size_t>(s.height() + 1);
+    std::vector<std::uint8_t> img;
+    img.resize(w*h);
+    ttf::rasterizer r{img.data(), w, h, static_cast<std::ptrdiff_t>(w)};
+    r.rasterize(s, -s.min_x(), -s.min_y());
+
+    std::ofstream out{argv[2], std::ios::binary};
+    std::transform(
+        std::cbegin(img), std::cend(img),
+        std::ostream_iterator<char>{out},
+        [](auto c) { return static_cast<char>(c); });
+
+    fmt::print("Image {}x{}\n", w, h);
 
     return 0;
 }
