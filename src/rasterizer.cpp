@@ -9,6 +9,8 @@
 #include <vector>
 #include <utility>
 
+// #define TTF_NO_ANTIALIASING 1
+
 namespace ttf
 {
 
@@ -57,14 +59,19 @@ class rasterizer::implementation
         float x2;
         float winding_height;
 
-        float winding(float x) const
+        float winding(float const x) const
         {
             auto const ix1 = std::clamp(x, x1, x2);
             auto const ix2 = std::clamp(x+1.0f, x1, x2);
             auto const dx = x2-x1;
-            auto const f1 = (ix1-x1) / dx;
-            auto const f2 = (ix2-x1) / dx;
-            return (f1+f2)/2.0f * winding_height;
+            // winding_height times inverse of dx*2
+            float const idx2 = winding_height/(dx*2.0f);
+            auto const sample1 = dx > 0.0f ? (ix1-x1) * idx2 : 0.0f;
+            auto const sample2 = dx > 0.0f ? (ix2-x1) * idx2 : 0.0f;
+            auto const sample3 = x > x2 ?
+                std::clamp(ix2-x2, 0.0f, 1.0f)*winding_height :
+                0.0f;
+            return (sample1+sample2+sample3);
         }
     };
 
@@ -153,6 +160,7 @@ void rasterizer::implementation::rasterize_scanlines(
 {
     auto line_it = std::cbegin(lines);
     std::vector<std::pair<float, int>> scanline_buffer;
+
     for(auto cy = start_y; cy < end_y; ++cy)
     {
         scanline_buffer.clear();
@@ -199,6 +207,7 @@ void rasterizer::implementation::rasterize_scanlines(
         }
     }
 }
+
 #else /* TTF_NO_ANTIALIASING */
 void rasterizer::implementation::rasterize_scanlines(
     int x, int y,
@@ -244,14 +253,15 @@ void rasterizer::implementation::rasterize_scanlines(
                 sbuf_it != std::cend(scanline_buffer) &&
                 sbuf_it->x2 < cx)
             {
-                winding += sbuf_it->winding(cx);
+                winding += sbuf_it->winding_height;
                 ++sbuf_it;
             }
 
             auto rest_winding = 0.0f;
             for(auto i = sbuf_it; i != std::cend(scanline_buffer); ++i)
             {
-                rest_winding += i->winding(cx);
+                if(i->x1 < cx)
+                    rest_winding += i->winding(cx);
             }
 
             auto const out_x = cx + x;

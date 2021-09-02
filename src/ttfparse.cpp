@@ -4,10 +4,12 @@
 #include <ttf/rasterizer.hpp>
 
 #include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <fstream>
@@ -134,17 +136,18 @@ int main(int argc, char const * argv[])
 
     auto fnt = ttf::typeface{std::move(contents)};
     auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
+    
+#if 1
     auto const s = s_b.flatten(0.5f);
-
-    /*
+#else
     auto const scale = .01774819744869661674f;
     ttf::transform t;
     t.m[0] = scale;
     t.m[3] = scale;
 
-    auto const s = ttf::shape{s_a, t};
-    */
-    
+    auto const s_a = ttf::shape{s_b, t};
+    auto const s = s_a.flatten(0.45f);
+#endif
 
     /*
     fmt::print(html_head, (s.width()+1)/2, (s.height()+2)/2, -s.min_x(), -s.max_y());
@@ -162,7 +165,14 @@ int main(int argc, char const * argv[])
     std::vector<std::uint8_t> img;
     img.resize(w*h);
     ttf::rasterizer r{img.data(), w, h, static_cast<std::ptrdiff_t>(w)};
-    r.rasterize(s, -s.min_x(), -s.min_y());
+
+    auto const t_before = std::chrono::high_resolution_clock::now();
+    auto const repeats = 100u;
+    for(auto i = 0u; i < repeats; ++i)
+    {
+        r.rasterize(s, -s.min_x(), -s.min_y());
+    }
+    auto const t_after = std::chrono::high_resolution_clock::now();
 
     std::ofstream out{argv[2], std::ios::binary};
     std::transform(
@@ -171,6 +181,7 @@ int main(int argc, char const * argv[])
         [](auto c) { return static_cast<char>(c); });
 
     fmt::print("Image {}x{}\n", w, h);
+    fmt::print("T_rasterize: {}\n", (t_after - t_before)/repeats);
 
     return 0;
 }
