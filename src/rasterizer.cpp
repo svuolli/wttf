@@ -235,20 +235,29 @@ void rasterizer::implementation::rasterize_scanlines(
             compare_edge);
 
         auto const out_y = cy + y;
+        auto winding = 0.0f;
+        auto sbuf_it = std::cbegin(scanline_buffer);
+
         for(auto cx = start_x; cx < end_x; ++cx)
         {
-            auto winding = 0.0f;
-            for(
-                auto i = std::cbegin(scanline_buffer);
-                i != std::cend(scanline_buffer);
-                ++i)
+            while(
+                sbuf_it != std::cend(scanline_buffer) &&
+                sbuf_it->x2 < cx)
             {
-                winding += i->winding(cx);
+                winding += sbuf_it->winding(cx);
+                ++sbuf_it;
+            }
+
+            auto rest_winding = 0.0f;
+            for(auto i = sbuf_it; i != std::cend(scanline_buffer); ++i)
+            {
+                rest_winding += i->winding(cx);
             }
 
             auto const out_x = cx + x;
 
-            auto const w = std::clamp(std::fabsf(winding), 0.0f, 1.0f);
+            auto const w =
+                std::clamp(std::fabsf(winding+rest_winding), 0.0f, 1.0f);
             auto const out = std::min(255, static_cast<int>(w * 255.0f));
             m_image[out_y * m_stride + out_x] = out;
         }
