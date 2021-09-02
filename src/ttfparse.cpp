@@ -133,8 +133,18 @@ int main(int argc, char const * argv[])
         [](auto c) { return static_cast<std::byte>(c); });
 
     auto fnt = ttf::typeface{std::move(contents)};
-    auto const s_b = fnt.glyph_shape(fnt.glyph_index('@'));
+    auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
     auto const s = s_b.flatten(0.5f);
+
+    /*
+    auto const scale = .01774819744869661674f;
+    ttf::transform t;
+    t.m[0] = scale;
+    t.m[3] = scale;
+
+    auto const s = ttf::shape{s_a, t};
+    */
+    
 
     /*
     fmt::print(html_head, (s.width()+1)/2, (s.height()+2)/2, -s.min_x(), -s.max_y());
