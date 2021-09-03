@@ -59,23 +59,37 @@ class rasterizer::implementation
         float x2;
         float winding_height;
 
-        float winding(float const x) const
+        float coverage(float const x) const
         {
-            auto const ix1 = std::clamp(x, x1, x2);
-            auto const ix2 = std::clamp(x+1.0f, x1, x2);
-            auto const dx = x2-x1;
-            // winding_height times inverse of dx*2
-            float const idx2 = winding_height/(dx*2.0f);
-            auto const sample1 = dx > 0.0f ? (ix1-x1) * idx2 : 0.0f;
-            auto const sample2 = dx > 0.0f ? (ix2-x1) * idx2 : 0.0f;
-            auto const sample3 = x > x2 ?
-                std::clamp(ix2-x2, 0.0f, 1.0f)*winding_height :
-                0.0f;
-            return (sample1+sample2+sample3);
+            if(x > x2)
+            {
+                return winding_height;
+            }
+            else if(x+1.0f < x1)
+            {
+                return 0.0f;
+            }
+            else
+            {
+                auto const tdx = x2-x1;
+                if(tdx < std::numeric_limits<float>::epsilon())
+                {
+                    return winding_height * ((x+1.0f) - x2);
+                }
+
+                auto const ix1 = std::clamp(x, x1, x2);
+                auto const ix2 = std::clamp(x+1.0f, x1, x2);
+                auto const dx1 = ix2-ix1;
+                auto const dx2 = (x+1.0f)-ix2;
+                auto const h1 = winding_height * (ix1 - x1)/tdx;
+                auto const h2 = winding_height * (ix2 - x1)/tdx;
+                auto const avg_h = (h1+h2) / 2.0f;
+                return (avg_h*dx1) + (winding_height*dx2);
+            }
         }
     };
 
-    edge_info clip(int const y1, line_segment seg) const;
+    edge_info clip(float const y1, line_segment seg) const;
 #endif
 
     std::uint8_t * m_image{nullptr};
@@ -235,7 +249,7 @@ void rasterizer::implementation::rasterize_scanlines(
 
         auto const compare_edge = [](auto const & a, auto const & b)
         {
-            return a.x1 < b.x1;
+            return a.x2 < b.x2;
         };
 
 
@@ -244,40 +258,61 @@ void rasterizer::implementation::rasterize_scanlines(
             compare_edge);
 
         auto const out_y = cy + y;
+        /*
         auto winding = 0.0f;
+        auto sbuf_it = std::begin(scanline_buffer);
+        */
+
+        auto coverage1 = 0.0f;
         auto sbuf_it = std::cbegin(scanline_buffer);
 
-        for(auto cx = start_x; cx < end_x; ++cx)
+        for(auto cx = start_x; cx < end_x;)
         {
             while(
                 sbuf_it != std::cend(scanline_buffer) &&
                 sbuf_it->x2 < cx)
             {
-                winding += sbuf_it->winding_height;
+                coverage1 += sbuf_it->coverage(cx);
                 ++sbuf_it;
             }
 
-            auto rest_winding = 0.0f;
-            for(auto i = sbuf_it; i != std::cend(scanline_buffer); ++i)
+            auto coverage2 = 0.0f;
+            auto next_x1 = static_cast<float>(end_x);
+            for(auto it = sbuf_it; it != std::cend(scanline_buffer); ++it)
             {
-                if(i->x1 < cx)
-                    rest_winding += i->winding(cx);
+                if((cx+1) >=it->x1)
+                {
+                    coverage2 += it->coverage(cx);
+                    next_x1 = cx+1;
+                }
+                else
+                {
+                    next_x1 = std::min(next_x1, it->x1);
+                }
             }
 
-            auto const out_x = cx + x;
+            next_x1 = std::floorf(next_x1);
+            TTF_ASSERT(next_x1 > cx);
 
-            auto const w =
-                std::clamp(std::fabsf(winding+rest_winding), 0.0f, 1.0f);
+            auto const next_cx = static_cast<int>(next_x1);
+            auto const out_count = next_cx - cx;
+
+            auto const coverage = coverage1 + coverage2;
+            auto const out_x = cx + x;
+            auto const w = std::clamp(std::fabsf(coverage), 0.0f, 1.0f);
             auto const out = std::min(255, static_cast<int>(w * 255.0f));
-            m_image[out_y * m_stride + out_x] = out;
+
+            std::fill_n(&m_image[out_y * m_stride + out_x], out_count, out);
+
+            cx = next_cx;
         }
     }
 }
 
 rasterizer::implementation::edge_info
-rasterizer::implementation::clip(int const y1, line_segment seg) const
+rasterizer::implementation::clip(float const y1, line_segment seg) const
 {
-    auto const y2 = y1+1;
+    auto const y2 = y1+1.0f;
     TTF_ASSERT(seg.y2 > y1 && seg.y1 < y2);
 
     auto const dy = seg.y2 - seg.y1;
@@ -295,10 +330,11 @@ rasterizer::implementation::clip(int const y1, line_segment seg) const
         seg.y2 = y2;
     }
 
-    return {
-        std::min(seg.x1, seg.x2),
-        std::max(seg.x1, seg.x2),
-        (seg.y2-seg.y1)*seg.winding};
+    auto const x1 = std::min(seg.x1, seg.x2);
+    auto const x2 = std::max(seg.x1, seg.x2);
+    auto const h = (seg.y2 - seg.y1) * seg.winding;
+
+    return {x1, x2, h};
 }
 #endif /* TTF_NO_ANTIALIASING */
 
