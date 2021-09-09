@@ -28,7 +28,6 @@ class rasterizer
     rasterizer & operator=(rasterizer &&);
 
     void rasterize(shape const & s, float x, float y) const;
-    // void rasterize(shape const & s, int x, int y) const;
 
     private:
     class implementation;
