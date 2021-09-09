@@ -33,7 +33,7 @@ class rasterizer::implementation
         m_stride{stride}
     {}
 
-    void rasterize(shape const & s, int x, int y) const;
+    void rasterize(shape const & s, float x, float y) const;
 
     private:
     struct line_segment
@@ -45,11 +45,11 @@ class rasterizer::implementation
         int winding;
     };
 
-    std::vector <line_segment> create_lines(shape const & s) const;
+    std::vector <line_segment> create_lines(
+        shape const & s, float x, float y) const;
     void rasterize_scanlines(
-        int x, int y,
-        int start_x, int start_y,
-        int end_x, int end_y,
+        std::size_t const start_x, std::size_t const end_x,
+        std::size_t const start_y, std::size_t const end_y,
         std::vector<line_segment> const & lines) const;
 
 #ifndef TTF_NO_ANTIALIASING
@@ -99,27 +99,30 @@ class rasterizer::implementation
 };
 
 void rasterizer::implementation::rasterize(
-    shape const & s, int x, int y) const
+    shape const & s, float x, float y) const
 {
-    auto const start_x = std::max(-x, static_cast<int>(std::floorf(s.min_x())));
-    auto const start_y = std::max(-y, static_cast<int>(std::floorf(s.min_y())));
+    auto const start_x = std::max(0.0f, std::floorf(s.min_x() + x));
+    auto const start_y = std::max(0.0f, std::floorf(s.min_y() + y));
     auto const end_x = std::min(
-        static_cast<int>(m_width) - x,
-        static_cast<int>(std::ceilf(s.max_x())));
+        static_cast<float>(m_width), std::ceilf(s.max_x() + x));
     auto const end_y = std::min(
-        static_cast<int>(m_height) - y,
-        static_cast<int>(std::ceilf(s.max_y())));
+        static_cast<float>(m_height), std::ceilf(s.max_y() + y));
 
     // Early exit, if shape is out of bounds
     if(start_x >= end_x || start_y >= end_y)
         return;
 
-    auto const & lines = create_lines(s);
-    rasterize_scanlines(x, y, start_x, start_y, end_x, end_y, lines);
+    auto const & lines = create_lines(s, x, y);
+    rasterize_scanlines(
+        static_cast<std::size_t>(start_x), static_cast<std::size_t>(end_x),
+        static_cast<std::size_t>(start_y), static_cast<std::size_t>(end_y),
+        lines);
 }
 
 std::vector<rasterizer::implementation::line_segment>
-rasterizer::implementation::create_lines(shape const & s) const
+rasterizer::implementation::create_lines(
+    shape const & s,
+    float x, float y) const
 {
     auto num_lines = std::size_t{0};
     for(auto const & c: s)
@@ -143,7 +146,7 @@ rasterizer::implementation::create_lines(shape const & s) const
                 continue;
             }
 
-            lines.push_back({v1.x, v1.y, v2.x, v2.y, -1});
+            lines.push_back({v1.x+x, v1.y+y, v2.x+x, v2.y+y, -1});
             auto & l = lines.back();
             if(l.y1 > l.y2)
             {
@@ -167,10 +170,9 @@ rasterizer::implementation::create_lines(shape const & s) const
 
 #ifdef TTF_NO_ANTIALIASING
 void rasterizer::implementation::rasterize_scanlines(
-    int x, int y,
-    int start_x, int start_y,
-    int end_x, int end_y,
-    std::vector<line_segment> const & lines) const
+        std::size_t start_x, std::size_t end_x,
+        std::size_t start_y, std::size_t end_y,
+        std::vector<line_segment> const & lines) const
 {
     auto line_it = std::cbegin(lines);
     std::vector<std::pair<float, int>> scanline_buffer;
@@ -202,7 +204,6 @@ void rasterizer::implementation::rasterize_scanlines(
             std::begin(scanline_buffer), std::end(scanline_buffer),
             compare_sline);
 
-        auto const out_y = cy + y;
         auto winding = 0;
         auto sbuf_it = std::cbegin(scanline_buffer);
         for(auto cx = start_x; cx < end_x; ++cx)
@@ -215,19 +216,18 @@ void rasterizer::implementation::rasterize_scanlines(
                 ++sbuf_it;
             }
 
-            auto const out_x = cx + x;
-            m_image[out_y * m_stride + out_x] =
+            m_image[cy * m_stride + cx] =
                 (winding != 0) ? 0xFF : 0;
         }
     }
 }
 
 #else /* TTF_NO_ANTIALIASING */
+
 void rasterizer::implementation::rasterize_scanlines(
-    int x, int y,
-    int start_x, int start_y,
-    int end_x, int end_y,
-    std::vector<line_segment> const & lines) const
+        std::size_t const start_x, std::size_t const end_x,
+        std::size_t const start_y, std::size_t const end_y,
+        std::vector<line_segment> const & lines) const
 {
     std::vector<edge_info> scanline_buffer;
     auto line_it = std::cbegin(lines);
@@ -256,12 +256,6 @@ void rasterizer::implementation::rasterize_scanlines(
         std::sort(
             std::begin(scanline_buffer), std::end(scanline_buffer),
             compare_edge);
-
-        auto const out_y = cy + y;
-        /*
-        auto winding = 0.0f;
-        auto sbuf_it = std::begin(scanline_buffer);
-        */
 
         auto coverage1 = 0.0f;
         auto sbuf_it = std::cbegin(scanline_buffer);
@@ -298,11 +292,10 @@ void rasterizer::implementation::rasterize_scanlines(
             auto const out_count = next_cx - cx;
 
             auto const coverage = coverage1 + coverage2;
-            auto const out_x = cx + x;
             auto const w = std::clamp(std::fabsf(coverage), 0.0f, 1.0f);
             auto const out = std::min(255, static_cast<int>(w * 255.0f));
 
-            std::fill_n(&m_image[out_y * m_stride + out_x], out_count, out);
+            std::fill_n(&m_image[cy * m_stride + cx], out_count, out);
 
             cx = next_cx;
         }
@@ -354,7 +347,7 @@ rasterizer::~rasterizer() = default;
 
 rasterizer & rasterizer::operator=(rasterizer &&) = default;
 
-void rasterizer::rasterize(shape const & s, int x, int y) const
+void rasterizer::rasterize(shape const & s, float x, float y) const
 {
     if(!m_impl)
         return;

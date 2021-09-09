@@ -138,7 +138,7 @@ int main(int argc, char const * argv[])
     auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
     
 #if 1
-    auto const s = s_b.flatten(0.5f);
+    auto const s = s_b.flatten(0.35f);
 #else
     auto const scale = .01774819744869661674f;
     ttf::transform t;
@@ -146,7 +146,7 @@ int main(int argc, char const * argv[])
     t.m[3] = scale;
 
     auto const s_a = ttf::shape{s_b, t};
-    auto const s = s_a.flatten(0.45f);
+    auto const s = s_a.flatten(0.35f);
 #endif
 
     /*
@@ -160,17 +160,25 @@ int main(int argc, char const * argv[])
     fmt::print(html_foot);
     */
 
-    auto const w = static_cast<std::size_t>(s.width() + 1);
-    auto const h = static_cast<std::size_t>(s.height() + 1);
+    auto const extents = [](auto a, auto b)
+    {
+        auto const oa = static_cast<int>(std::floorf(a));
+        auto const ob = static_cast<int>(std::ceilf(b));
+        return static_cast<std::size_t>(ob-oa);
+    };
+
+    auto const w = extents(s.min_x(), s.max_x());
+    auto const h = extents(s.min_y(), s.max_y());
+
     std::vector<std::uint8_t> img;
     img.resize(w*h);
     ttf::rasterizer r{img.data(), w, h, static_cast<std::ptrdiff_t>(w)};
 
     auto const t_before = std::chrono::high_resolution_clock::now();
-    auto const repeats = 100u;
+    auto const repeats = 1000u;
     for(auto i = 0u; i < repeats; ++i)
     {
-        r.rasterize(s, -s.min_x(), -s.min_y());
+        r.rasterize(s, -s.min_x(), -std::floorf(s.min_y()));
     }
     auto const t_after = std::chrono::high_resolution_clock::now();
 
