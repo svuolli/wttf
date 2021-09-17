@@ -92,6 +92,19 @@ typeface::typeface(
 
     m_loca = find_table("loca");
     m_glyf = find_table("glyf");
+    m_hmtx = find_table("hmtx");
+
+    auto hhea = find_table("hhea");
+    if(hhea)
+    {
+        m_metrics.ascent =
+            static_cast<float>(get<std::int16_t>(hhea + 4));
+        m_metrics.descent =
+            static_cast<float>(get<std::int16_t>(hhea + 6));
+        m_metrics.line_gap =
+            static_cast<float>(get<std::int16_t>(hhea + 8));
+        m_number_of_h_metrics = get<std::uint16_t>(hhea + 34);
+    }
 }
 
 typeface::~typeface() = default;
@@ -121,6 +134,37 @@ shape typeface::glyph_shape(std::uint16_t glyph_index) const
     }
 
     return {};
+}
+
+glyph_metrics typeface::metrics(std::uint16_t glyph_index) const
+{
+    auto adv = 0.0f;
+    auto lsb = 0.0f;
+
+    if(glyph_index < m_number_of_h_metrics)
+    {
+        auto const offset = m_hmtx + glyph_index * 4;
+        adv = static_cast<float>(get<std::uint16_t>(offset + 0));
+        lsb = static_cast<float>(get<std::int16_t>(offset + 2));
+    }
+    else
+    {
+        adv = static_cast<float>(
+            get<std::uint16_t>(m_hmtx + 4 * (m_number_of_h_metrics-1)));
+        lsb = static_cast<float>(get<std::int16_t>(
+                m_hmtx +
+                4 * m_number_of_h_metrics +
+                2 * (glyph_index - m_number_of_h_metrics)));
+    }
+
+    auto const offset = glyph_offset(glyph_index);
+
+    auto const x_min = static_cast<float>(get<std::int16_t>(offset + 2));
+    auto const y_min = static_cast<float>(get<std::int16_t>(offset + 4));
+    auto const x_max = static_cast<float>(get<std::int16_t>(offset + 6));
+    auto const y_max = static_cast<float>(get<std::int16_t>(offset + 8));
+
+    return {lsb, adv, x_min, y_min, x_max, y_max};
 }
 
 std::uint16_t typeface::format0_glyph_index(int codepoint) const

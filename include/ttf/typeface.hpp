@@ -2,6 +2,7 @@
 #define TTF_TYPEFACE_HPP
 
 #include "shape.hpp"
+#include "metrics.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -50,6 +51,8 @@ class typeface
 
     [[nodiscard]] std::size_t glyph_index(int codepoint) const;
     [[nodiscard]] shape glyph_shape(std::uint16_t index) const;
+    [[nodiscard]] glyph_metrics metrics(std::uint16_t index) const;
+    [[nodiscard]] const font_metrics & metrics() const { return m_metrics; }
 
     private:
     typeface(std::shared_ptr<font_data const> const & data, std::size_t offset);
@@ -57,7 +60,7 @@ class typeface
     using glyph_index_fn_t = std::uint16_t (typeface::*)(int) const;
     using glyph_offset_fn_t = std::uint32_t (typeface::*)(std::uint16_t) const;
 
-    template <typename T> T get(std::size_t offset) const;
+    template <typename T> [[nodiscard]] T get(std::size_t offset) const;
 
     [[nodiscard]] std::uint32_t find_table(char const * tag) const;
 
@@ -82,7 +85,10 @@ class typeface
     std::uint32_t m_cmap_index{0};
     std::uint32_t m_loca{0};
     std::uint32_t m_glyf{0};
+    std::uint32_t m_hmtx{0};
     std::uint16_t m_num_glyphs{0};
+    font_metrics m_metrics{0.0f, 0.0f, 0.0f};
+    std::uint16_t m_number_of_h_metrics{0};
 };
 
 } /* namespace ttf */

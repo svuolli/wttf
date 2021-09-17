@@ -32,6 +32,7 @@
 /*
  * References:
  *  https://docs.microsoft.com/en-us/typography/opentype/spec/otff
+ *  https://developer.apple.com/fonts/TrueType-Reference-Manual/RM01/Chap1.html
  *  https://github.com/nothings/stb/blob/master/stb_truetype.h
  */
 
