@@ -143,7 +143,7 @@ ttf::shape draw_text(ttf::typeface const & typeface, std::string const & str)
 
     auto const end = std::chrono::high_resolution_clock::now();
     auto const duration = end - start;
-    fmt::print(FMT_STRING("T[draw_text] = {}\n"), duration);
+    // fmt::print(FMT_STRING("T[draw_text] = {}\n"), duration);
 
     return result;
 }
@@ -223,8 +223,8 @@ int main(int argc, char const * argv[])
         std::ostream_iterator<char>{out},
         [](auto c) { return static_cast<char>(c); });
 
-    fmt::print("Image {}x{}\n", w, h);
-    fmt::print("T_rasterize: {}\n", (t_after - t_before)/repeats);
+    // fmt::print("Image {}x{}\n", w, h);
+    // fmt::print("T_rasterize: {}\n", (t_after - t_before)/repeats);
 
     return 0;
 }

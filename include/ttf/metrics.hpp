@@ -1,10 +1,12 @@
 #ifndef TTF_GLYPH_METRICS_HPP
 #define TTF_GLYPH_METRICS_HPP
 
+#include "export.hpp"
+
 namespace ttf
 {
 
-struct font_metrics
+struct WTTF_EXPORT font_metrics
 {
     float ascent;
     float descent;
@@ -16,7 +18,7 @@ struct font_metrics
     }
 };
 
-struct glyph_metrics
+struct WTTF_EXPORT glyph_metrics
 {
     float left_side_bearing;
     float advance;

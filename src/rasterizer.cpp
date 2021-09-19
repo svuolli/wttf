@@ -290,7 +290,7 @@ void rasterizer::implementation::rasterize_scanlines(
             }
 
             next_x1 = std::floorf(next_x1);
-            TTF_ASSERT(next_x1 > cx);
+            TTF_ASSERT(next_x1 > fcx);
 
             auto const next_cx = static_cast<std::size_t>(next_x1);
             auto const out_count = next_cx - cx;

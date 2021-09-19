@@ -1,6 +1,7 @@
 #ifndef TTF_SHAPE_HPP
 #define TTF_SHAPE_HPP
 
+#include "export.hpp"
 #include "transform.hpp"
 
 #include <vector>
@@ -8,7 +9,7 @@
 namespace ttf
 {
 
-class shape
+class WTTF_EXPORT shape
 {
     public:
     struct vertex

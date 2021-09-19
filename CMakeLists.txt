@@ -9,9 +9,20 @@ project(
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
 find_package(fmt 3.7.0 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+    option(ENABLE_SANITIZERS "Enable sanitizers")
+    
+    if(ENABLE_SANITIZERS)
+        add_compile_options(--coverage -O0 -g -fsanitize=leak,address,undefined)
+        add_link_options(--coverage -fsanitize=leak,address,undefined)
+    endif()
+endif()
 
 add_subdirectory(src)
 

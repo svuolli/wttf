@@ -1,6 +1,8 @@
 #ifndef TTF_TRANSFORM_HPP
 #define TTF_TRANSFORM_HPP
 
+#include "export.hpp"
+
 #include <array>
 #include <cmath>
 #include <utility>
@@ -10,7 +12,7 @@ namespace ttf
 
 using matrix_2x2 = std::array<float, 2*2>;
 
-struct transform
+struct WTTF_EXPORT transform
 {
     matrix_2x2 m{1.0f, 0.0f, 0.0f, 1.0f};
     float tx{0};

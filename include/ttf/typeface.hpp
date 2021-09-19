@@ -1,6 +1,7 @@
 #ifndef TTF_TYPEFACE_HPP
 #define TTF_TYPEFACE_HPP
 
+#include "export.hpp"
 #include "shape.hpp"
 #include "metrics.hpp"
 
@@ -17,7 +18,7 @@ struct font_data;
 class typeface;
 
 #if WTTF_FONT_COLLECTION_IMPLEMENTED
-class font_collection
+class WTTF_EXPORT font_collection
 {
     public:
     font_collection();
@@ -39,7 +40,7 @@ class font_collection
 };
 #endif
 
-class typeface
+class WTTF_EXPORT typeface
 {
     public:
     typeface();

@@ -1,6 +1,9 @@
 
 add_library(wttf)
 
+include(GenerateExportHeader)
+generate_export_header(wttf EXPORT_FILE_NAME export.hpp)
+
 target_sources(
     wttf PRIVATE
     rasterizer.cpp
@@ -10,7 +13,8 @@ target_sources(
 target_include_directories(
     wttf PUBLIC
     $<INSTALL_INTERFACE:include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
 # Enable warnings
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
@@ -25,9 +29,10 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
         -Wunused
         -Woverloaded-virtual
         -Wconversion
-        #-Wsign-conversion
+        -Wsign-conversion
         -Wnull-dereference)
 endif()
+#TODO: Warnings for MSVC & clang
 
 add_executable(ttfparse ttfparse.cpp)
 target_link_libraries(ttfparse PUBLIC wttf fmt::fmt)

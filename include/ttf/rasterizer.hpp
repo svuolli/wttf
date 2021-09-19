@@ -1,6 +1,7 @@
 #ifndef TTF_RASTERIZER_HPP
 #define TTF_RASTERIZER_HPP
 
+#include "export.hpp"
 #include "shape.hpp"
 
 #include <cstdint>
@@ -9,7 +10,7 @@
 namespace ttf
 {
 
-class rasterizer
+class WTTF_EXPORT rasterizer
 {
     public:
     rasterizer();
