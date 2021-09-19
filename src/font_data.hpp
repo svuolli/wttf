@@ -145,9 +145,11 @@ struct font_data
         static constexpr auto size = sizeof(T);
 
         auto v = U{0};
+        
+
         for(auto i = offset; i != offset + size; ++i)
         {
-            v = (v<<8) | std::to_integer<U>(bytes[i]);
+            v = static_cast<U>(v<<8) | std::to_integer<U>(bytes[i]);
         }
 
         return static_cast<T>(v);

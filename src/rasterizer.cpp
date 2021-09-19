@@ -233,6 +233,8 @@ void rasterizer::implementation::rasterize_scanlines(
     auto line_it = std::cbegin(lines);
     for(auto cy = start_y; cy < end_y; ++cy)
     {
+        auto const fcy = static_cast<float>(cy);
+
         scanline_buffer.clear();
         auto const pred = [cy=static_cast<float>(cy)](auto const & l)
         {
@@ -242,9 +244,9 @@ void rasterizer::implementation::rasterize_scanlines(
 
         for(auto i = line_it; i != std::cend(lines); ++i)
         {
-            if(i->y1 >= static_cast<float>(cy+1))
+            if(i->y1 >= (fcy+1.0f))
                 continue;
-            scanline_buffer.push_back(clip(cy, *i));
+            scanline_buffer.push_back(clip(fcy, *i));
         }
 
         auto const compare_edge = [](auto const & a, auto const & b)
@@ -262,11 +264,13 @@ void rasterizer::implementation::rasterize_scanlines(
 
         for(auto cx = start_x; cx < end_x;)
         {
+            auto const fcx = static_cast<float>(cx);
+
             while(
                 sbuf_it != std::cend(scanline_buffer) &&
-                sbuf_it->x2 < cx)
+                sbuf_it->x2 < fcx)
             {
-                coverage1 += sbuf_it->coverage(cx);
+                coverage1 += sbuf_it->coverage(fcx);
                 ++sbuf_it;
             }
 
@@ -274,10 +278,10 @@ void rasterizer::implementation::rasterize_scanlines(
             auto next_x1 = static_cast<float>(end_x);
             for(auto it = sbuf_it; it != std::cend(scanline_buffer); ++it)
             {
-                if((cx+1) >=it->x1)
+                if((fcx+1.0f) >=it->x1)
                 {
-                    coverage2 += it->coverage(cx);
-                    next_x1 = cx+1;
+                    coverage2 += it->coverage(fcx);
+                    next_x1 = fcx+1.0f;
                 }
                 else
                 {
@@ -288,14 +292,17 @@ void rasterizer::implementation::rasterize_scanlines(
             next_x1 = std::floorf(next_x1);
             TTF_ASSERT(next_x1 > cx);
 
-            auto const next_cx = static_cast<int>(next_x1);
+            auto const next_cx = static_cast<std::size_t>(next_x1);
             auto const out_count = next_cx - cx;
 
             auto const coverage = coverage1 + coverage2;
             auto const w = std::clamp(std::fabsf(coverage), 0.0f, 1.0f);
             auto const out = std::min(255, static_cast<int>(w * 255.0f));
 
-            std::fill_n(&m_image[cy * m_stride + cx], out_count, out);
+            auto const start_of_row =
+                static_cast<std::ptrdiff_t>(cy) * m_stride;
+            auto const offset = static_cast<std::size_t>(start_of_row) + cx;
+            std::fill_n(&m_image[offset], out_count, out);
 
             cx = next_cx;
         }
@@ -325,7 +332,7 @@ rasterizer::implementation::clip(float const y1, line_segment seg) const
 
     auto const x1 = std::min(seg.x1, seg.x2);
     auto const x2 = std::max(seg.x1, seg.x2);
-    auto const h = (seg.y2 - seg.y1) * seg.winding;
+    auto const h = (seg.y2 - seg.y1) * static_cast<float>(seg.winding);
 
     return {x1, x2, h};
 }

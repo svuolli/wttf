@@ -18,9 +18,11 @@ typeface::typeface(std::vector<std::byte> && data):
     typeface{std::make_shared<font_data const>(std::move(data)), 0}
 {}
 
+#if WTTF_FONT_COLLECTION_IMPLEMENTED
 typeface::typeface(font_collection const & collection, std::size_t index):
-    typeface{collection.m_data, 0}
+    typeface{collection.m_data, collection.offset(index)}
 {}
+#endif
 
 typeface::typeface(
     std::shared_ptr<font_data const> const & data, std::size_t offset):
@@ -152,7 +154,7 @@ typeface::~typeface() = default;
 
 typeface & typeface::operator=(const typeface &) = default;
 
-std::size_t typeface::glyph_index(int codepoint) const
+std::size_t typeface::glyph_index(unsigned int codepoint) const
 {
     return
         m_glyph_index_fn ? std::invoke(m_glyph_index_fn, this, codepoint) : 0;
@@ -230,7 +232,7 @@ float typeface::kerning(std::uint16_t glyph1, std::uint16_t glyph2) const
     return val->second;
 }
 
-std::uint16_t typeface::format0_glyph_index(int codepoint) const
+std::uint16_t typeface::format0_glyph_index(unsigned int codepoint) const
 {
     auto const length = get<std::uint16_t>(m_cmap_index + 2);
     if(codepoint < length-6)
@@ -240,20 +242,20 @@ std::uint16_t typeface::format0_glyph_index(int codepoint) const
     return 0;
 }
 
-std::uint16_t typeface::format4_glyph_index(int codepoint) const
+std::uint16_t typeface::format4_glyph_index(unsigned int codepoint) const
 {
     if(codepoint > 0xFFFF) // Format 4 only handles BPM
     {
         return 0;
     }
 
-    auto const seg_count = get<std::uint16_t>(m_cmap_index+6) >> 1;
+    auto const seg_count = get<std::uint16_t>(m_cmap_index+6)/2u;
     auto search_range = get<std::uint16_t>(m_cmap_index+8);
     auto entry_selector = get<std::uint16_t>(m_cmap_index+10);
     auto const range_shift = get<std::uint16_t>(m_cmap_index+12);
 
-    auto const end_count = m_cmap_index + 14;
-    auto search = end_count;    
+    auto const end_count = m_cmap_index + 14u;
+    auto search = end_count;
 
     if(codepoint > get<std::uint16_t>(search + range_shift))
     {
@@ -270,30 +272,30 @@ std::uint16_t typeface::format4_glyph_index(int codepoint) const
         --entry_selector;
     }
 
-    search += 2;
+    search += 2u;
 
-    auto const end_code = m_cmap_index + 14;
+    auto const end_code = m_cmap_index + 14u;
     auto const item = (search - end_count) >> 1;
-    auto const start = get<std::uint16_t>(end_code + seg_count*2 + 2 + 2*item);
+    auto const start = get<std::uint16_t>(end_code + seg_count*2u + 2u + 2u*item);
     if(codepoint < start)
     {
         return 0;
     }
 
-    auto const offset = get<std::uint16_t>(end_code + seg_count*6 + 2 + 2*item);
+    auto const offset = get<std::uint16_t>(end_code + seg_count*6u + 2u + 2u*item);
 
     if(offset == 0)
     {
         return
-            codepoint +
-            get<std::uint16_t>(end_code + seg_count*4 + 2 + 2*item);
+            static_cast<std::uint16_t>(codepoint) +
+            get<std::uint16_t>(end_code + seg_count*4u + 2u + 2u*item);
     }
 
     return get<std::uint16_t>(
         end_code + offset + (codepoint-start)*2 + seg_count*6 + 2 + 2*item);
 }
 
-std::uint16_t typeface::format6_glyph_index(int codepoint) const
+std::uint16_t typeface::format6_glyph_index(unsigned int codepoint) const
 {
     auto const first_code = get<std::uint16_t>(m_cmap_index + 6);
     auto const entry_count = get<std::uint16_t>(m_cmap_index + 8);
@@ -355,6 +357,8 @@ std::uint32_t typeface::find_table(char const * tag) const
 shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
 {
     auto const gh = get<glyph_header>(glyph_offset);
+    auto const number_of_contours =
+        static_cast<std::uint16_t>(gh.number_of_contours);
 
     struct vertex
     {
@@ -366,18 +370,19 @@ shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
     auto const end_pts_of_countours_offset =
         glyph_offset + glyph_header::byte_size;
     auto const instruction_length = get<std::uint16_t>(
-        end_pts_of_countours_offset + gh.number_of_contours * 2);
+        end_pts_of_countours_offset +
+        number_of_contours * 2u);
 
     auto end_pts = m_data->create_cursor(end_pts_of_countours_offset);
     auto points = m_data->create_cursor(
             end_pts_of_countours_offset +
-            gh.number_of_contours*2 +
-            2 +
+            number_of_contours*2u +
+            2u +
             instruction_length);
 
     auto const num_points =
         std::size_t{1} +
-        end_pts.peek<std::uint16_t>((gh.number_of_contours-1) * 2);
+        end_pts.peek<std::uint16_t>((number_of_contours-1u) * 2u);
 
     auto vertices = std::vector<vertex>{num_points};
 
@@ -425,7 +430,7 @@ shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
     }
 
     // Read y coordinates
-    auto current_y = std::uint16_t{0};
+    auto current_y = std::int16_t{0};
     for(auto i=0u; i < num_points; ++i)
     {
         auto & v = vertices[i];

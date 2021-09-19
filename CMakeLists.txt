@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(
-    ttfparse
+    wttf
     VERSION 0.1.0
-    DESCRIPTION "RR"
+    DESCRIPTION "TrueType font parser and rasterizer"
     LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)

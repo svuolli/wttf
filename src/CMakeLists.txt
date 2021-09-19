@@ -1,19 +1,33 @@
-add_executable(ttfparse)
+
+add_library(wttf)
+
 target_sources(
-    ttfparse PRIVATE
+    wttf PRIVATE
     rasterizer.cpp
     shape.cpp
-    typeface.cpp
-    ttfparse.cpp)
-target_link_libraries(
-    ttfparse PRIVATE
-    fmt::fmt)
+    typeface.cpp)
 
 target_include_directories(
-    ttfparse PUBLIC
+    wttf PUBLIC
     $<INSTALL_INTERFACE:include>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
 
-target_compile_options(
-    ttfparse PRIVATE
-    -stdlib=libc++)
+# Enable warnings
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
+    target_compile_options(
+        wttf PRIVATE
+        -Wall
+        -Wextra
+        -Wshadow
+        -Wnon-virtual-dtor
+        -Wold-style-cast
+        -Wcast-align
+        -Wunused
+        -Woverloaded-virtual
+        -Wconversion
+        #-Wsign-conversion
+        -Wnull-dereference)
+endif()
+
+add_executable(ttfparse ttfparse.cpp)
+target_link_libraries(ttfparse PUBLIC wttf fmt::fmt)
