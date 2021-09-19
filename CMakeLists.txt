@@ -11,8 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-find_package(fmt 3.7.0 REQUIRED)
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
@@ -25,4 +23,5 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 
 add_subdirectory(src)
+add_subdirectory(examples EXCLUDE_FROM_ALL)
 

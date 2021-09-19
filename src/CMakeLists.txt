@@ -34,5 +34,3 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 #TODO: Warnings for MSVC & clang
 
-add_executable(ttfparse ttfparse.cpp)
-target_link_libraries(ttfparse PUBLIC wttf fmt::fmt)
