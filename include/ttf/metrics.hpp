@@ -3,7 +3,7 @@
 
 #include "export.hpp"
 
-namespace ttf
+namespace wttf
 {
 
 struct WTTF_EXPORT font_metrics
@@ -40,6 +40,6 @@ struct WTTF_EXPORT glyph_metrics
     }
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_GLYPH_METRICS_HPP */

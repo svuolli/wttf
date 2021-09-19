@@ -3,7 +3,7 @@
 
 #include <functional>
 
-namespace ttf
+namespace wttf
 {
 
 template <typename T> T typeface::get(std::size_t offset) const

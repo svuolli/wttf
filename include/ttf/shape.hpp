@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace ttf
+namespace wttf
 {
 
 class WTTF_EXPORT shape
@@ -28,7 +28,7 @@ class WTTF_EXPORT shape
         float min_x, float min_y,
         float max_x, float max_y,
         std::size_t contours = 0);
-    shape(shape const & other, ttf::transform const & t);
+    shape(shape const & other, wttf::transform const & t);
 
     ~shape() = default;
 
@@ -58,7 +58,7 @@ class WTTF_EXPORT shape
     void add_contour(std::size_t s = 0);
     void add_vertex(float x, float y, bool on_curve);
     void add_shape(shape const & s, transform const & t = {});
-    void transform(ttf::transform const & t);
+    void transform(wttf::transform const & t);
 
     [[nodiscard]] shape flatten(float const flatness) const;
 
@@ -81,6 +81,6 @@ class WTTF_EXPORT shape
     bool m_flat{true};
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_SHAPE_HPP */

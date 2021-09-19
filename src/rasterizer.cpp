@@ -11,7 +11,7 @@
 
 // #define WTTF_NO_ANTIALIASING 1
 
-namespace ttf
+namespace wttf
 {
 
 /* Class: rasterizer::implementation */
@@ -368,4 +368,4 @@ void rasterizer::rasterize(shape const & s, float x, float y) const
     m_impl->rasterize(s, x, y);
 }
 
-} /* namespace ttf */
+} /* namespace wttf */

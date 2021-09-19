@@ -68,7 +68,7 @@ ctx.fill();
 </html>
 )html";
 
-void draw_contour(ttf::shape::contour_t const & c)
+void draw_contour(wttf::shape::contour_t const & c)
 {
     // fmt::print("ctx.beginPath();\n");
     fmt::print("\nctx.moveTo({}, {});\n", c[0].x, c[0].y);
@@ -115,14 +115,14 @@ void draw_contour(ttf::shape::contour_t const & c)
     // fmt::print("ctx.stroke();\n\n");
 }
 
-ttf::shape draw_text(ttf::typeface const & typeface, std::string const & str)
+wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
 {
     auto const start = std::chrono::high_resolution_clock::now();
     if(str.empty())
         return {};
 
-    auto result = ttf::shape{};
-    auto t = ttf::transform{};
+    auto result = wttf::shape{};
+    auto t = wttf::transform{};
     auto constexpr scale = 1.0f/50.0f;
     t.m[0] = t.m[3] = scale;
     auto prev_glyph = std::uint16_t{0};
@@ -168,7 +168,7 @@ int main(int argc, char const * argv[])
         std::back_insert_iterator{contents},
         [](auto c) { return static_cast<std::byte>(c); });
 
-    auto fnt = ttf::typeface{std::move(contents)};
+    auto fnt = wttf::typeface{std::move(contents)};
     // auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
     auto const s_b = draw_text(fnt, "Yes We Kern!");
     
@@ -176,11 +176,11 @@ int main(int argc, char const * argv[])
     auto const s = s_b.flatten(0.35f);
 #else
     auto const scale = .01774819744869661674f;
-    ttf::transform t;
+    wttf::transform t;
     t.m[0] = scale;
     t.m[3] = scale;
 
-    auto const s_a = ttf::shape{s_b, t};
+    auto const s_a = wttf::shape{s_b, t};
     auto const s = s_a.flatten(0.35f);
 #endif
 
@@ -207,7 +207,7 @@ int main(int argc, char const * argv[])
 
     std::vector<std::uint8_t> img;
     img.resize(w*h);
-    ttf::rasterizer r{img.data(), w, h, static_cast<std::ptrdiff_t>(w)};
+    wttf::rasterizer r{img.data(), w, h, static_cast<std::ptrdiff_t>(w)};
 
     auto const t_before = std::chrono::high_resolution_clock::now();
     auto const repeats = 1000u;

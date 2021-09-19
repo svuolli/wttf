@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace ttf
+namespace wttf
 {
 
 class WTTF_EXPORT rasterizer
@@ -36,6 +36,6 @@ class WTTF_EXPORT rasterizer
     std::unique_ptr<implementation> m_impl;
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_RASTERIZER_HPP */

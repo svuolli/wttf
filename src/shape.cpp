@@ -1,7 +1,7 @@
 #include <ttf/assert.hpp>
 #include <ttf/shape.hpp>
 
-namespace ttf
+namespace wttf
 {
 
 shape::shape(
@@ -16,7 +16,7 @@ shape::shape(
     }
 }
 
-shape::shape(shape const & other, ttf::transform const & t)
+shape::shape(shape const & other, wttf::transform const & t)
 {
     add_shape(other, t);
 }
@@ -38,7 +38,7 @@ void shape::add_vertex(float x, float y, bool on_curve)
     m_contours.back().push_back({x, y, on_curve});
 }
 
-void shape::add_shape(shape const & s, ttf::transform const & t)
+void shape::add_shape(shape const & s, wttf::transform const & t)
 {
     auto const min_p = t.apply(s.m_min_x, s.m_min_y);
     auto const max_p = t.apply(s.m_max_x, s.m_max_y);
@@ -62,7 +62,7 @@ void shape::add_shape(shape const & s, ttf::transform const & t)
     }
 }
 
-void shape::transform(ttf::transform const & t)
+void shape::transform(wttf::transform const & t)
 {
     if(empty())
         return;
@@ -174,5 +174,5 @@ void shape::add_tesselated_curve(
     }
 }
 
-} /* namespace */
+} /* namespace wttf */
 

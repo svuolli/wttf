@@ -7,7 +7,7 @@
 #include <cmath>
 #include <utility>
 
-namespace ttf
+namespace wttf
 {
 
 using matrix_2x2 = std::array<float, 2*2>;
@@ -35,6 +35,6 @@ struct WTTF_EXPORT transform
     }
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_TRANSFORM_HPP */

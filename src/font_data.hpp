@@ -8,7 +8,7 @@
 #include <vector>
 #include <utility>
 
-namespace ttf
+namespace wttf
 {
 
 using tag_t = std::array<std::uint8_t, 4>;
@@ -198,6 +198,6 @@ struct font_data
     std::vector<std::byte> const bytes;
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_FONT_DATA_HPP */

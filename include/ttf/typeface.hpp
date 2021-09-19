@@ -10,7 +10,7 @@
 #include <memory>
 #include <vector>
 
-namespace ttf
+namespace wttf
 {
 
 struct font_data;
@@ -107,6 +107,6 @@ class WTTF_EXPORT typeface
     std::uint16_t m_number_of_h_metrics{0};
 };
 
-} /* namespace ttf */
+} /* namespace wttf */
 
 #endif /* WTTF_TYPEFACE_HPP */
