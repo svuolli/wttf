@@ -9,7 +9,7 @@
 #include <vector>
 #include <utility>
 
-// #define TTF_NO_ANTIALIASING 1
+// #define WTTF_NO_ANTIALIASING 1
 
 namespace ttf
 {
@@ -52,7 +52,7 @@ class rasterizer::implementation
         std::size_t const start_y, std::size_t const end_y,
         std::vector<line_segment> const & lines) const;
 
-#ifndef TTF_NO_ANTIALIASING
+#ifndef WTTF_NO_ANTIALIASING
     struct edge_info
     {
         float x1;
@@ -168,7 +168,7 @@ rasterizer::implementation::create_lines(
     return lines;
 }
 
-#ifdef TTF_NO_ANTIALIASING
+#ifdef WTTF_NO_ANTIALIASING
 void rasterizer::implementation::rasterize_scanlines(
         std::size_t start_x, std::size_t end_x,
         std::size_t start_y, std::size_t end_y,
@@ -222,7 +222,7 @@ void rasterizer::implementation::rasterize_scanlines(
     }
 }
 
-#else /* TTF_NO_ANTIALIASING */
+#else /* WTTF_NO_ANTIALIASING */
 
 void rasterizer::implementation::rasterize_scanlines(
         std::size_t const start_x, std::size_t const end_x,
@@ -290,7 +290,7 @@ void rasterizer::implementation::rasterize_scanlines(
             }
 
             next_x1 = std::floorf(next_x1);
-            TTF_ASSERT(next_x1 > fcx);
+            WTTF_ASSERT(next_x1 > fcx);
 
             auto const next_cx = static_cast<std::size_t>(next_x1);
             auto const out_count = next_cx - cx;
@@ -313,7 +313,7 @@ rasterizer::implementation::edge_info
 rasterizer::implementation::clip(float const y1, line_segment seg) const
 {
     auto const y2 = y1+1.0f;
-    TTF_ASSERT(seg.y2 > y1 && seg.y1 < y2);
+    WTTF_ASSERT(seg.y2 > y1 && seg.y1 < y2);
 
     auto const dy = seg.y2 - seg.y1;
     auto const fdx = (seg.x2 - seg.x1)/dy;
@@ -336,7 +336,7 @@ rasterizer::implementation::clip(float const y1, line_segment seg) const
 
     return {x1, x2, h};
 }
-#endif /* TTF_NO_ANTIALIASING */
+#endif /* WTTF_NO_ANTIALIASING */
 
 /* Class: rasterizer */
 rasterizer::rasterizer() = default;

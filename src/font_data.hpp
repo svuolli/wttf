@@ -1,5 +1,5 @@
-#ifndef TTF_FONT_DATA_HPP
-#define TTF_FONT_DATA_HPP
+#ifndef WTTF_FONT_DATA_HPP
+#define WTTF_FONT_DATA_HPP
 
 #include <ttf/assert.hpp>
 
@@ -82,7 +82,7 @@ struct glyph_header
 
 inline tag_t tag_from_c_string(char const * str)
 {
-    TTF_ASSERT(std::strlen(str) == 4);
+    WTTF_ASSERT(std::strlen(str) == 4);
 
     auto begin = reinterpret_cast<std::uint8_t const *>(str);
     return tag_t{begin[0], begin[1], begin[2], begin[3]};
@@ -200,4 +200,4 @@ struct font_data
 
 } /* namespace ttf */
 
-#endif /* TTF_FONT_DATA_HPP */
+#endif /* WTTF_FONT_DATA_HPP */

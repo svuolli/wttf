@@ -20,12 +20,12 @@
 #include <utility>
 #include <vector>
 
-#ifndef TTF_ASSERT
+#ifndef WTTF_ASSERT
 #ifndef NDEBUG
 #include <cassert>
-#define TTF_ASSERT(x) assert(x)
+#define WTTF_ASSERT(x) assert(x)
 #else
-#define TTF_ASSERT(x)
+#define WTTF_ASSERT(x)
 #endif
 #endif
 

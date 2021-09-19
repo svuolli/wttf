@@ -1,5 +1,5 @@
-#ifndef TTF_RASTERIZER_HPP
-#define TTF_RASTERIZER_HPP
+#ifndef WTTF_RASTERIZER_HPP
+#define WTTF_RASTERIZER_HPP
 
 #include "export.hpp"
 #include "shape.hpp"
@@ -38,4 +38,4 @@ class WTTF_EXPORT rasterizer
 
 } /* namespace ttf */
 
-#endif /* TTF_RASTERIZER_HPP */
+#endif /* WTTF_RASTERIZER_HPP */

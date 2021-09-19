@@ -1,5 +1,5 @@
-#ifndef TTF_SHAPE_HPP
-#define TTF_SHAPE_HPP
+#ifndef WTTF_SHAPE_HPP
+#define WTTF_SHAPE_HPP
 
 #include "export.hpp"
 #include "transform.hpp"
@@ -83,4 +83,4 @@ class WTTF_EXPORT shape
 
 } /* namespace ttf */
 
-#endif /* TTF_SHAPE_HPP */
+#endif /* WTTF_SHAPE_HPP */

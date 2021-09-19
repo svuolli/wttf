@@ -1,5 +1,5 @@
-#ifndef TTF_TYPEFACE_HPP
-#define TTF_TYPEFACE_HPP
+#ifndef WTTF_TYPEFACE_HPP
+#define WTTF_TYPEFACE_HPP
 
 #include "export.hpp"
 #include "shape.hpp"
@@ -109,4 +109,4 @@ class WTTF_EXPORT typeface
 
 } /* namespace ttf */
 
-#endif /* TTF_TYPEFACE_HPP */
+#endif /* WTTF_TYPEFACE_HPP */

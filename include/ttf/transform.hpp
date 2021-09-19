@@ -1,5 +1,5 @@
-#ifndef TTF_TRANSFORM_HPP
-#define TTF_TRANSFORM_HPP
+#ifndef WTTF_TRANSFORM_HPP
+#define WTTF_TRANSFORM_HPP
 
 #include "export.hpp"
 
@@ -37,4 +37,4 @@ struct WTTF_EXPORT transform
 
 } /* namespace ttf */
 
-#endif /* TTF_TRANSFORM_HPP */
+#endif /* WTTF_TRANSFORM_HPP */

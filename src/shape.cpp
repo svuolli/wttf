@@ -33,7 +33,7 @@ void shape::add_contour(std::size_t s)
 
 void shape::add_vertex(float x, float y, bool on_curve)
 {
-    TTF_ASSERT(on_curve || !empty());
+    WTTF_ASSERT(on_curve || !empty());
     m_flat &= on_curve;
     m_contours.back().push_back({x, y, on_curve});
 }

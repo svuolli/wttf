@@ -67,11 +67,11 @@ typeface::typeface(
 
         default:
             // Unknown or unsupported cmap format
-            TTF_ASSERT(false);
+            WTTF_ASSERT(false);
             break;
     }
 
-    TTF_ASSERT(m_cmap_index != 0);
+    WTTF_ASSERT(m_cmap_index != 0);
 
     auto const head = find_table("head");
     switch(get<std::uint16_t>(head + 50))
@@ -85,7 +85,7 @@ typeface::typeface(
 
         default:
             // Unknown indexToLocFormat
-            TTF_ASSERT(false);
+            WTTF_ASSERT(false);
             break;
     }
 

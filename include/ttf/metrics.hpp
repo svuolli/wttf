@@ -1,5 +1,5 @@
-#ifndef TTF_GLYPH_METRICS_HPP
-#define TTF_GLYPH_METRICS_HPP
+#ifndef WTTF_GLYPH_METRICS_HPP
+#define WTTF_GLYPH_METRICS_HPP
 
 #include "export.hpp"
 
@@ -42,4 +42,4 @@ struct WTTF_EXPORT glyph_metrics
 
 } /* namespace ttf */
 
-#endif /* TTF_GLYPH_METRICS_HPP */
+#endif /* WTTF_GLYPH_METRICS_HPP */
