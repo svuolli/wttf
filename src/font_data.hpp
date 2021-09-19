@@ -1,7 +1,7 @@
 #ifndef WTTF_FONT_DATA_HPP
 #define WTTF_FONT_DATA_HPP
 
-#include <ttf/assert.hpp>
+#include <wttf/assert.hpp>
 
 #include <array>
 #include <cstddef>
