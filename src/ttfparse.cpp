@@ -115,6 +115,39 @@ void draw_contour(ttf::shape::contour_t const & c)
     // fmt::print("ctx.stroke();\n\n");
 }
 
+ttf::shape draw_text(ttf::typeface const & typeface, std::string const & str)
+{
+    auto const start = std::chrono::high_resolution_clock::now();
+    if(str.empty())
+        return {};
+
+    auto result = ttf::shape{};
+    auto t = ttf::transform{};
+    auto constexpr scale = 1.0f/50.0f;
+    t.m[0] = t.m[3] = scale;
+    auto prev_glyph = std::uint16_t{0};
+
+    for(auto ch: str)
+    {
+        auto const g_index = typeface.glyph_index(ch);
+        auto const shape = typeface.glyph_shape(g_index);
+        auto const metrics = typeface.metrics(g_index);
+        auto const kern = typeface.kerning(prev_glyph, g_index);
+
+        t.tx += kern * scale;
+        result.add_shape(shape, t);
+        t.tx += metrics.advance * scale;
+
+        prev_glyph = g_index;
+    }
+
+    auto const end = std::chrono::high_resolution_clock::now();
+    auto const duration = end - start;
+    fmt::print(FMT_STRING("T[draw_text] = {}\n"), duration);
+
+    return result;
+}
+
 }
 
 int main(int argc, char const * argv[])
@@ -136,7 +169,8 @@ int main(int argc, char const * argv[])
         [](auto c) { return static_cast<std::byte>(c); });
 
     auto fnt = ttf::typeface{std::move(contents)};
-    auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
+    // auto const s_b = fnt.glyph_shape(fnt.glyph_index('@' /* 196 = Ä */));
+    auto const s_b = draw_text(fnt, "Yes We Kern!");
     
 #if 1
     auto const s = s_b.flatten(0.35f);

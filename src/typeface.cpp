@@ -105,6 +105,47 @@ typeface::typeface(
             static_cast<float>(get<std::int16_t>(hhea + 8));
         m_number_of_h_metrics = get<std::uint16_t>(hhea + 34);
     }
+
+    m_kern = find_table("kern");
+    if(m_kern)
+    {
+        auto const version = get<std::uint16_t>(m_kern);
+        auto const n_tables = get<std::uint16_t>(m_kern + 2);
+        if(n_tables > 0 && version == 0) // We only know version 0
+        {
+            auto find_sub_table = [n_tables, this]() -> std::uint32_t
+            {
+                auto offset = m_kern + 4;
+                for(auto table = 0u; table != n_tables; ++table)
+                {
+                    auto const version = get<std::uint16_t>(offset);
+                    auto const length = get<std::uint16_t>(offset + 2);
+                    auto const coverage = get<std::uint16_t>(offset + 4);
+                    auto const format = coverage >> 8;
+                    auto const horizontal = ((coverage & 1) != 0);
+                    if(version == 0 && format == 0 && horizontal)
+                    {
+                        return offset;
+                    }
+                    offset += length;
+                }
+
+                return 0;
+            };
+
+            auto const sub_table = find_sub_table();
+            auto const n_pairs = get<std::uint16_t>(sub_table + 6);
+
+            auto stream = m_data->create_cursor(sub_table+14);
+            for(auto i = 0u; i !=n_pairs; ++i)
+            {
+                auto const left = stream.read<std::uint16_t>();
+                auto const right = stream.read<std::uint16_t>();
+                auto const value = stream.read<std::int16_t>();
+                m_kerning_tables[left][right] = static_cast<float>(value);
+            }
+        }
+    }
 }
 
 typeface::~typeface() = default;
@@ -165,6 +206,28 @@ glyph_metrics typeface::metrics(std::uint16_t glyph_index) const
     auto const y_max = static_cast<float>(get<std::int16_t>(offset + 8));
 
     return {lsb, adv, x_min, y_min, x_max, y_max};
+}
+
+float typeface::kerning(std::uint16_t glyph1, std::uint16_t glyph2) const
+{
+    if(m_kern == 0)
+    {
+        return 0.0f;
+    }
+
+    auto const table = m_kerning_tables.find(glyph1);
+    if(table == std::cend(m_kerning_tables))
+    {
+        return 0.0f;
+    }
+
+    auto const val = table->second.find(glyph2);
+    if(val == std::cend(table->second))
+    {
+        return 0.0f;
+    }
+
+    return val->second;
 }
 
 std::uint16_t typeface::format0_glyph_index(int codepoint) const
@@ -386,10 +449,10 @@ shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
 
     auto s = shape{
         static_cast<float>(gh.x_min),
-            static_cast<float>(gh.y_min),
-            static_cast<float>(gh.x_max),
-            static_cast<float>(gh.y_max),
-            static_cast<std::size_t>(gh.number_of_contours)};
+        static_cast<float>(gh.y_min),
+        static_cast<float>(gh.x_max),
+        static_cast<float>(gh.y_max),
+        static_cast<std::size_t>(gh.number_of_contours)};
 
     auto next_contour = std::uint16_t{0};
     for(auto i=0u; i < num_points; ++i)
