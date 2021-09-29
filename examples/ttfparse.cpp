@@ -123,9 +123,10 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
 
     auto result = wttf::shape{};
     auto t = wttf::transform{};
-    auto constexpr scale = 1.0f/50.0f;
+    auto constexpr scale = 1.0f/25.0f;
     t.m[0] = t.m[3] = scale;
     auto prev_glyph = std::uint16_t{0};
+    auto total_kern = 0.0f;
 
     for(auto ch: str)
     {
@@ -133,6 +134,7 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
         auto const shape = typeface.glyph_shape(g_index);
         auto const metrics = typeface.metrics(g_index);
         auto const kern = typeface.kerning(prev_glyph, g_index);
+        total_kern += kern;
 
         t.tx += kern * scale;
         result.add_shape(shape, t);
@@ -143,7 +145,8 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
 
     auto const end = std::chrono::high_resolution_clock::now();
     auto const duration = end - start;
-    // fmt::print(FMT_STRING("T[draw_text] = {}\n"), duration);
+    fmt::print(FMT_STRING("T[draw_text] = {}\n"), duration);
+    fmt::print("total kern: {}\n", total_kern);
 
     return result;
 }
@@ -197,8 +200,8 @@ int main(int argc, char const * argv[])
 
     auto const extents = [](auto a, auto b)
     {
-        auto const oa = static_cast<int>(std::floorf(a));
-        auto const ob = static_cast<int>(std::ceilf(b));
+        auto const oa = static_cast<int>(std::floor(a));
+        auto const ob = static_cast<int>(std::ceil(b));
         return static_cast<std::size_t>(ob-oa);
     };
 
@@ -213,7 +216,7 @@ int main(int argc, char const * argv[])
     auto const repeats = 1000u;
     for(auto i = 0u; i < repeats; ++i)
     {
-        r.rasterize(s, -s.min_x(), -std::floorf(s.min_y()));
+        r.rasterize(s, -s.min_x(), -std::floor(s.min_y()));
     }
     auto const t_after = std::chrono::high_resolution_clock::now();
 
@@ -223,8 +226,8 @@ int main(int argc, char const * argv[])
         std::ostream_iterator<char>{out},
         [](auto c) { return static_cast<char>(c); });
 
-    // fmt::print("Image {}x{}\n", w, h);
-    // fmt::print("T_rasterize: {}\n", (t_after - t_before)/repeats);
+    fmt::print("Image {}x{}\n", w, h);
+    fmt::print("T_rasterize: {}\n", (t_after - t_before)/repeats);
 
     return 0;
 }
