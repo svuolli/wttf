@@ -101,12 +101,12 @@ class rasterizer::implementation
 void rasterizer::implementation::rasterize(
     shape const & s, float x, float y) const
 {
-    auto const start_x = std::max(0.0f, std::floorf(s.min_x() + x));
-    auto const start_y = std::max(0.0f, std::floorf(s.min_y() + y));
+    auto const start_x = std::max(0.0f, std::floor(s.min_x() + x));
+    auto const start_y = std::max(0.0f, std::floor(s.min_y() + y));
     auto const end_x = std::min(
-        static_cast<float>(m_width), std::ceilf(s.max_x() + x));
+        static_cast<float>(m_width), std::ceil(s.max_x() + x));
     auto const end_y = std::min(
-        static_cast<float>(m_height), std::ceilf(s.max_y() + y));
+        static_cast<float>(m_height), std::ceil(s.max_y() + y));
 
     // Early exit, if shape is out of bounds
     if(start_x >= end_x || start_y >= end_y)
@@ -289,14 +289,14 @@ void rasterizer::implementation::rasterize_scanlines(
                 }
             }
 
-            next_x1 = std::floorf(next_x1);
+            next_x1 = std::floor(next_x1);
             WTTF_ASSERT(next_x1 > fcx);
 
             auto const next_cx = static_cast<std::size_t>(next_x1);
             auto const out_count = next_cx - cx;
 
             auto const coverage = coverage1 + coverage2;
-            auto const w = std::clamp(std::fabsf(coverage), 0.0f, 1.0f);
+            auto const w = std::clamp(std::abs(coverage), 0.0f, 1.0f);
             auto const out = std::min(255, static_cast<int>(w * 255.0f));
 
             auto const start_of_row =
