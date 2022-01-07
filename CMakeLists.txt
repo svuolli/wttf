@@ -10,8 +10,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+option(BUILD_EXAMPLES "Build example programs" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+include(GNUInstallDirs)
+
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     option(ENABLE_SANITIZERS "Enable sanitizers")
@@ -23,5 +27,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
 endif()
 
 add_subdirectory(src)
-add_subdirectory(examples EXCLUDE_FROM_ALL)
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
 
