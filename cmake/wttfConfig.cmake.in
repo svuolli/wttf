@@ -1,0 +1,9 @@
+get_filename_component(WTTF_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+list(APPEND CMAKE_MODULE_PATH ${WTTF_CMAKE_DIR})
+
+if(NOT TARGET wttf::wttf)
+    include("${WTTF_CMAKE_DIR}/WttfTargets.cmake")
+endif()
+
+set(WTTF_LIBRARIES wttf::wttf)

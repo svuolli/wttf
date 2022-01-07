@@ -1,8 +1,6 @@
+include(GenerateExportHeader)
 
 add_library(wttf)
-
-include(GenerateExportHeader)
-generate_export_header(wttf EXPORT_FILE_NAME export.hpp)
 
 target_sources(
     wttf PRIVATE
@@ -33,4 +31,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
         -Wnull-dereference)
 endif()
 #TODO: Warnings for MSVC & clang
+
+generate_export_header(wttf EXPORT_FILE_NAME export.hpp)
 
