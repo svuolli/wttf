@@ -14,7 +14,7 @@ when I find time and motivation, and some of which I am indifferent about.
 
 The API (and ABI) is not stable. I am currently not going to pay any attention
 that existing programs using wttf keeps working when I change something. But
-my long term goal is to make the API stable, so that new features won't brake
+my long term goal is to make the API stable, so that new features won't break
 programs using the old features. Until then, the version number will stay at
 0.1.x.
 
