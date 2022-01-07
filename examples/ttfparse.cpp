@@ -4,6 +4,7 @@
 #include <wttf/rasterizer.hpp>
 
 #include <fmt/format.h>
+#include <fmt/color.h>
 #include <fmt/chrono.h>
 
 #include <algorithm>
@@ -151,6 +152,16 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
     return result;
 }
 
+void usage(char const * program_name)
+{
+    std::cerr <<
+        fmt::format("Usage: {} ", program_name) <<
+        fmt::format(fmt::emphasis::underline, "font-file") <<
+        " " <<
+        fmt::format(fmt::emphasis::underline, "result-file") <<
+        "\n";
+}
+
 }
 
 int main(int argc, char const * argv[])
@@ -158,6 +169,7 @@ int main(int argc, char const * argv[])
     if(argc < 3)
     {
         std::cerr << fmt::format("{}: too few arguments\n", argv[0]);
+        usage(argv[0]);
         return -1;
     }
 
