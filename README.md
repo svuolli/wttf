@@ -10,7 +10,7 @@ grayscale image of the outline data. The output is anti-aliased and looks nice
 to my eyes. The performance seems to be also quite good.
 
 There's lots of missing features, some of which I am interested in adding
-when I find time and motivation, and some of which I am indifferent abaut.
+when I find time and motivation, and some of which I am indifferent about.
 
 The API (and ABI) is not stable. I am currently not going to pay any attention
 that existing programs using wttf keeps working when I change something. But
