@@ -21,8 +21,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     option(ENABLE_SANITIZERS "Enable sanitizers")
     
     if(ENABLE_SANITIZERS)
-        add_compile_options(--coverage -O0 -g -fsanitize=leak,address,undefined)
-        add_link_options(--coverage -fsanitize=leak,address,undefined)
+        add_compile_options(--coverage -O0 -g -fsanitize=address,undefined)
+        add_link_options(--coverage -fsanitize=address,undefined)
     endif()
 endif()
 
