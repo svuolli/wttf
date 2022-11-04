@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(BUILD_EXAMPLES "Build example programs" OFF)
+option(WTTF_BUILD_EXAMPLES "Build example programs" OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -18,9 +18,9 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-    option(ENABLE_SANITIZERS "Enable sanitizers")
+    option(WTTF_ENABLE_SANITIZERS "Enable sanitizers")
     
-    if(ENABLE_SANITIZERS)
+    if(WTTF_ENABLE_SANITIZERS)
         add_compile_options(--coverage -O0 -g -fsanitize=address,undefined)
         add_link_options(--coverage -fsanitize=address,undefined)
     endif()
@@ -29,7 +29,7 @@ endif()
 add_subdirectory(src)
 add_subdirectory(include)
 
-if(BUILD_EXAMPLES)
+if(WTTF_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 

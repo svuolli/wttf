@@ -14,7 +14,9 @@
             "binaryDir": "${sourceDir}/build/default",
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_CXX_COMPILER": "clang++"
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "WTTF_BUILD_EXAMPLES": "ON"
             }
         }
     ],

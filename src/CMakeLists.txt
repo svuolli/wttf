@@ -18,6 +18,7 @@ target_include_directories(
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
     target_compile_options(
         wttf PRIVATE
+        -Werror
         -Wall
         -Wextra
         -Wshadow

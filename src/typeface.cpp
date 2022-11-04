@@ -54,16 +54,18 @@ typeface::typeface(
         }
     }
 
-        // Format of cmap
+    // Format of cmap
     switch(get<std::uint16_t>(m_cmap_index))
     {
         case 0:
             m_glyph_index_fn = &typeface::format0_glyph_index;
+            break;
         case 4:
             m_glyph_index_fn = &typeface::format4_glyph_index;
             break;
         case 6:
             m_glyph_index_fn = &typeface::format6_glyph_index;
+            break;
 
         default:
             // Unknown or unsupported cmap format
