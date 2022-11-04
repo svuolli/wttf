@@ -490,8 +490,6 @@ shape typeface::composite_glyph_shape(std::uint32_t const glyph_offset) const
         auto glyph_index = data.read<std::uint16_t>();
 
         auto t = transform{};
-        auto point1 = std::uint16_t{0};
-        auto point2 = std::uint16_t{0};
 
         if(flags & composite_glyph_flags::args_are_xy_values)
         {
@@ -510,13 +508,13 @@ shape typeface::composite_glyph_shape(std::uint32_t const glyph_offset) const
         {
             if(flags & composite_glyph_flags::arg_1_and_arg_2_are_words)
             {
-                point1 = data.read<std::uint16_t>();
-                point2 = data.read<std::uint16_t>();
+                data.read<std::uint16_t>();
+                data.read<std::uint16_t>();
             }
             else
             {
-                point1 = data.read<std::uint8_t>();
-                point2 = data.read<std::uint8_t>();
+                data.read<std::uint8_t>();
+                data.read<std::uint8_t>();
             }
         }
 

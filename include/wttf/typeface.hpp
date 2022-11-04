@@ -6,6 +6,7 @@
 #include "metrics.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <vector>
