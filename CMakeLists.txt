@@ -11,18 +11,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(WTTF_BUILD_EXAMPLES "Build example programs" OFF)
+option(WTTF_ENABLE_SANITIZERS "Enable sanitizers")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-    option(WTTF_ENABLE_SANITIZERS "Enable sanitizers")
-    
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     if(WTTF_ENABLE_SANITIZERS)
-        add_compile_options(--coverage -O0 -g -fsanitize=address,undefined)
-        add_link_options(--coverage -fsanitize=address,undefined)
+        add_compile_options(--coverage -O0 -g -fsanitize=address,undefined,leak)
+        add_link_options(--coverage -fsanitize=address,undefined,leak)
     endif()
 endif()
 
