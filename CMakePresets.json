@@ -7,23 +7,46 @@
     },
     "configurePresets": [
         {
-            "name": "default",
-            "displayName": "Default config",
-            "description": "Default build using Ninja generator and clang",
+            "name": "Debug",
+            "description": "Default development build",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/default",
+            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_CXX_COMPILER": "clang++",
                 "CMAKE_BUILD_TYPE": "Debug",
+                "WTTF_ENABLE_SANITIZERS": "ON",
+                "WTTF_BUILD_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "Release",
+            "description": "Default release build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "ReleaseWithExamples",
+            "description": "Default release build, with examples",
+            "inherits": "Release",
+            "cacheVariables": {
                 "WTTF_BUILD_EXAMPLES": "ON"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "default",
-            "configurePreset": "default"
+            "name": "Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "configurePreset": "Release"
+        },
+        {
+            "name": "ReleaseWithExamples",
+            "configurePreset": "ReleaseWithExamples"
         }
     ]
 }
