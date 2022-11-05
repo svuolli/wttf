@@ -46,9 +46,6 @@ void usage(char const * program_name)
 
 wttf::typeface load_font(std::filesystem::path const & file)
 {
-    using file_stream = std::basic_ifstream<std::byte>;
-    using file_buff_iterator = std::istreambuf_iterator<std::byte>;
-
     std::ifstream fs{file, std::ios::binary};
     auto contents = std::vector<std::byte>{};
     std::transform(
@@ -168,6 +165,8 @@ void save_png(
 
     png_write_image(png_context, row_pointers.data());
     png_write_end(png_context, nullptr);
+
+    png_destroy_write_struct(&png_context, &png_info_ptr);
 }
 
 } /* namespace */
