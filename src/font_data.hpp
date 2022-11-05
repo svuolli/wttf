@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 #include <utility>
@@ -15,13 +16,13 @@ namespace wttf
 using tag_t = std::array<std::uint8_t, 4>;
 
 enum class platform_id: std::uint16_t
-    {
-        unicode = 0,
-        macintosh = 1,
-        iso = 2,
-        windows = 3,
-        custom = 4
-    };
+{
+    unicode = 0,
+    macintosh = 1,
+    iso = 2,
+    windows = 3,
+    custom = 4
+};
 
 static constexpr uint16_t windows_unicode_bmp_encoding_id = 1;
 static constexpr uint16_t windows_unicode_full_encoding_id = 10;
@@ -89,6 +90,71 @@ inline tag_t tag_from_c_string(char const * str)
     return tag_t{begin[0], begin[1], begin[2], begin[3]};
 }
 
+namespace detail
+{
+
+template <typename T>
+T extract_from_data(std::vector<std::byte> const & data, std::size_t offset)
+{
+    using U = std::make_unsigned_t<T>;
+    static constexpr auto size = sizeof(T);
+
+    auto v = U{0};
+
+    for(auto i = offset; i != offset + size; ++i)
+    {
+        v = static_cast<U>(v<<8) | std::to_integer<U>(data[i]);
+    }
+
+    return static_cast<T>(v);
+}
+
+template<>
+inline tag_t extract_from_data<tag_t>(
+    std::vector<std::byte> const & data, std::size_t offset)
+{
+    return tag_t{
+        extract_from_data<std::uint8_t>(data, offset+0),
+        extract_from_data<std::uint8_t>(data, offset+1),
+        extract_from_data<std::uint8_t>(data, offset+2),
+        extract_from_data<std::uint8_t>(data, offset+3)};
+}
+
+template<>
+inline table_entry extract_from_data<table_entry>(
+    std::vector<std::byte> const & data, std::size_t offset)
+{
+    return table_entry{
+        extract_from_data<tag_t>(data, offset+0),
+        extract_from_data<std::uint32_t>(data, offset+4),
+        extract_from_data<std::uint32_t>(data, offset+8),
+        extract_from_data<std::uint32_t>(data, offset+12)};
+}
+
+template<>
+inline encoding_record extract_from_data<encoding_record>(
+    std::vector<std::byte> const & data, std::size_t offset)
+{
+    return encoding_record{
+        extract_from_data<platform_id>(data, offset+0),
+        extract_from_data<std::uint16_t>(data, offset+2),
+        extract_from_data<std::uint32_t>(data, offset+4)};
+}
+
+template<>
+inline glyph_header extract_from_data<glyph_header>(
+    std::vector<std::byte> const & data, std::size_t offset)
+{
+    return glyph_header{
+        extract_from_data<std::int16_t>(data, offset+0),
+        extract_from_data<std::int16_t>(data, offset+2),
+        extract_from_data<std::int16_t>(data, offset+4),
+        extract_from_data<std::int16_t>(data, offset+6),
+        extract_from_data<std::int16_t>(data, offset+8)};
+}
+
+} /* namespace detail */
+
 struct font_data
 {
     struct cursor
@@ -142,58 +208,7 @@ struct font_data
     template <typename T>
     T get(std::size_t offset) const
     {
-        using U = std::make_unsigned_t<T>;
-        static constexpr auto size = sizeof(T);
-
-        auto v = U{0};
-        
-
-        for(auto i = offset; i != offset + size; ++i)
-        {
-            v = static_cast<U>(v<<8) | std::to_integer<U>(bytes[i]);
-        }
-
-        return static_cast<T>(v);
-    }
-
-    template<>
-    tag_t get<tag_t>(std::size_t offset) const
-    {
-        return tag_t{
-            get<std::uint8_t>(offset+0),
-            get<std::uint8_t>(offset+1),
-            get<std::uint8_t>(offset+2),
-            get<std::uint8_t>(offset+3)};
-    }
-
-    template<>
-    table_entry get<table_entry>(std::size_t offset) const
-    {
-        return table_entry{
-            get<tag_t>(offset+0),
-            get<std::uint32_t>(offset+4),
-            get<std::uint32_t>(offset+8),
-            get<std::uint32_t>(offset+12)};
-    }
-
-    template<>
-    encoding_record get<encoding_record>(std::size_t offset) const
-    {
-        return encoding_record{
-            get<platform_id>(offset+0),
-            get<std::uint16_t>(offset+2),
-            get<std::uint32_t>(offset+4) };
-    }
-
-    template<>
-    glyph_header get<glyph_header>(std::size_t offset) const
-    {
-        return glyph_header{
-            get<std::int16_t>(offset+0),
-            get<std::int16_t>(offset+2),
-            get<std::int16_t>(offset+4),
-            get<std::int16_t>(offset+6),
-            get<std::int16_t>(offset+8)};
+        return detail::extract_from_data<T>(bytes, offset);
     }
 
     std::vector<std::byte> const bytes;

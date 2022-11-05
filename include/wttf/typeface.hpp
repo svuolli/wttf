@@ -62,16 +62,15 @@ class WTTF_EXPORT typeface
     [[nodiscard]] std::size_t glyph_index(unsigned int codepoint) const;
     [[nodiscard]] shape glyph_shape(std::uint16_t index) const;
     [[nodiscard]] glyph_metrics metrics(std::uint16_t index) const;
-    [[nodiscard]] const font_metrics & metrics() const { return m_metrics; }
+    [[nodiscard]] font_metrics const & metrics() const { return m_metrics; }
     [[nodiscard]] float kerning(std::uint16_t glyph1, std::uint16_t glyph2) const;
 
     private:
-    typeface(std::shared_ptr<font_data const> const & data, std::size_t offset);
-
     using glyph_index_fn_t = std::uint16_t (typeface::*)(unsigned int) const;
     using glyph_offset_fn_t = std::uint32_t (typeface::*)(std::uint16_t) const;
-
     using kerning_table = std::map<std::uint16_t, float>;
+
+    typeface(std::shared_ptr<font_data const> const & data, std::size_t offset);
 
     template <typename T> [[nodiscard]] T get(std::size_t offset) const;
 
@@ -81,7 +80,7 @@ class WTTF_EXPORT typeface
     [[nodiscard]] std::uint16_t format4_glyph_index(unsigned int codepoint) const;
     [[nodiscard]] std::uint16_t format6_glyph_index(unsigned int codepoint) const;
 
-    [[nodiscard]] std::uint32_t
+    [[nodiscard]] std::uint32_t 
     format0_glyph_offset(std::uint16_t glyph_index) const;
     [[nodiscard]] std::uint32_t
     format1_glyph_offset(std::uint16_t glyph_index) const;
