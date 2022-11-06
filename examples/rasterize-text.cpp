@@ -7,6 +7,7 @@
 #include <fmt/color.h>
 
 #include <png.h>
+#include <unicode/unistr.h>
 
 #include <algorithm>
 #include <array>
@@ -69,9 +70,12 @@ wttf::shape draw_text(
     t.m[0] = t.m[3] = scale;
     auto prev_glyph = std::uint16_t{0};
 
-    for(auto ch: str)
+    auto const unicode_string = icu::UnicodeString::fromUTF8(str);
+
+    for(auto offset = 0u; offset != unicode_string.length(); ++offset)
     {
-        auto const g_index = typeface.glyph_index(ch);
+        auto const codepoint = unicode_string.char32At(offset);
+        auto const g_index = typeface.glyph_index(codepoint);
         auto const shape = typeface.glyph_shape(g_index);
         auto const metrics = typeface.metrics(g_index);
         auto const kern = typeface.kerning(prev_glyph, g_index);

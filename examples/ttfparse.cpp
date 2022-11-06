@@ -7,6 +7,8 @@
 #include <fmt/color.h>
 #include <fmt/chrono.h>
 
+#include <unicode/unistr.h>
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -129,8 +131,11 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
     auto prev_glyph = std::uint16_t{0};
     auto total_kern = 0.0f;
 
-    for(auto ch: str)
+    auto const unicode_string = icu::UnicodeString::fromUTF8(str);
+
+    for(auto i = 0u; i != unicode_string.length(); ++i)
     {
+        auto const ch = unicode_string.char32At(i);
         auto const g_index = typeface.glyph_index(ch);
         auto const shape = typeface.glyph_shape(g_index);
         auto const metrics = typeface.metrics(g_index);
