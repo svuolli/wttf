@@ -28,7 +28,7 @@ class WTTF_EXPORT rasterizer
     rasterizer & operator=(rasterizer const &) = delete;
     rasterizer & operator=(rasterizer &&);
 
-    void rasterize(shape const & s, float x, float y) const;
+    void rasterize(shape const & s, float x_offset, float y_offset) const;
 
     private:
     class implementation;

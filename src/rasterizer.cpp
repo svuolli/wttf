@@ -33,7 +33,7 @@ class rasterizer::implementation
         m_stride{stride}
     {}
 
-    void rasterize(shape const & s, float x, float y) const;
+    void rasterize(shape const & s, float x_offset, float y_offset) const;
 
     private:
     struct line_segment
@@ -96,23 +96,23 @@ class rasterizer::implementation
     std::size_t m_width{0};
     std::size_t m_height{0};
     std::ptrdiff_t m_stride{0};
-};
+}; /* class rasterizer::implementation */
 
 void rasterizer::implementation::rasterize(
-    shape const & s, float x, float y) const
+    shape const & s, float x_offset, float y_offset) const
 {
-    auto const start_x = std::max(0.0f, std::floor(s.min_x() + x));
-    auto const start_y = std::max(0.0f, std::floor(s.min_y() + y));
+    auto const start_x = std::max(0.0f, std::floor(s.min_x() + x_offset));
+    auto const start_y = std::max(0.0f, std::floor(s.min_y() + y_offset));
     auto const end_x = std::min(
-        static_cast<float>(m_width), std::ceil(s.max_x() + x));
+        static_cast<float>(m_width), std::ceil(s.max_x() + x_offset));
     auto const end_y = std::min(
-        static_cast<float>(m_height), std::ceil(s.max_y() + y));
+        static_cast<float>(m_height), std::ceil(s.max_y() + y_offset));
 
     // Early exit, if shape is out of bounds
     if(start_x >= end_x || start_y >= end_y)
         return;
 
-    auto const & lines = create_lines(s, x, y);
+    auto const & lines = create_lines(s, x_offset, y_offset);
     rasterize_scanlines(
         static_cast<std::size_t>(start_x), static_cast<std::size_t>(end_x),
         static_cast<std::size_t>(start_y), static_cast<std::size_t>(end_y),
@@ -122,7 +122,7 @@ void rasterizer::implementation::rasterize(
 std::vector<rasterizer::implementation::line_segment>
 rasterizer::implementation::create_lines(
     shape const & s,
-    float x, float y) const
+    float x_offset, float y_offset) const
 {
     auto num_lines = std::size_t{0};
     for(auto const & c: s)
@@ -146,7 +146,10 @@ rasterizer::implementation::create_lines(
                 continue;
             }
 
-            lines.push_back({v1.x+x, v1.y+y, v2.x+x, v2.y+y, -1});
+            lines.push_back({
+                v1.x+x_offset, v1.y+y_offset,
+                v2.x+x_offset, v2.y+y_offset,
+                -1});
             auto & l = lines.back();
             if(l.y1 > l.y2)
             {
@@ -354,18 +357,19 @@ rasterizer::~rasterizer() = default;
 
 rasterizer & rasterizer::operator=(rasterizer &&) = default;
 
-void rasterizer::rasterize(shape const & s, float x, float y) const
+void rasterizer::rasterize(
+    shape const & s, float x_offset, float y_offset) const
 {
     if(!m_impl)
         return;
 
     if(!s.flat())
     {
-        rasterize(s.flatten(0.45f), x, y);
+        rasterize(s.flatten(0.45f), x_offset, y_offset);
         return;
     }
 
-    m_impl->rasterize(s, x, y);
+    m_impl->rasterize(s, x_offset, y_offset);
 }
 
 } /* namespace wttf */
