@@ -86,6 +86,11 @@ void shape::transform(wttf::transform const & t)
     }
 }
 
+void shape::scale(float sx, float sy)
+{
+    transform({{sx, 0.0f, 0.0f, sy}, 0.0f, 0.0f});
+}
+
 shape shape::flatten(float const flatness) const
 {
     if(m_flat) return *this;

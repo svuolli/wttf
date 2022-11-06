@@ -59,8 +59,24 @@ class WTTF_EXPORT shape
     void add_vertex(float x, float y, bool on_curve);
     void add_shape(shape const & s, transform const & t = {});
     void transform(wttf::transform const & t);
+    void scale(float sx, float sy);
+    void scale(float s) { scale(s, s); }
 
     [[nodiscard]] shape flatten(float const flatness) const;
+    [[nodiscard]] shape transformed(wttf::transform const & t) const
+    {
+        return shape{*this, t};
+    }
+
+    [[nodiscard]] shape scaled(float sx, float sy) const
+    {
+        return transformed({{sx, 0.0f, 0.0f, sy}, 0.0f, 0.0f});
+    }
+
+    [[nodiscard]] shape scaled(float scale)
+    {
+        return scaled(scale, scale);
+    }
 
     [[nodiscard]] auto begin() const { return m_contours.begin(); }
     [[nodiscard]] auto end() const { return m_contours.end(); }

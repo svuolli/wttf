@@ -12,9 +12,19 @@ struct WTTF_EXPORT font_metrics
     float descent;
     float line_gap;
 
-    constexpr font_metrics scaled(float s)
+    [[nodiscard]] constexpr font_metrics scaled(float s) const noexcept
     {
         return {ascent * s, descent * s, line_gap * s};
+    }
+
+    [[nodiscard]] constexpr float height() const noexcept
+    {
+        return ascent - descent;
+    }
+
+    [[nodiscard]] constexpr float linespace() const noexcept
+    {
+        return height() + line_gap;
     }
 };
 
@@ -27,7 +37,7 @@ struct WTTF_EXPORT glyph_metrics
     float x_max;
     float y_max;
 
-    constexpr glyph_metrics scaled(float s)
+    [[nodiscard]] constexpr glyph_metrics scaled(float s) const noexcept
     {
         return {
             left_side_bearing * s,
@@ -37,6 +47,16 @@ struct WTTF_EXPORT glyph_metrics
             x_max * s,
             y_max * s
         };
+    }
+
+    [[nodiscard]] constexpr float bb_width() const noexcept
+    {
+        return x_max - x_min;
+    }
+
+    [[nodiscard]] constexpr float bb_height() const noexcept
+    {
+        return y_max - y_min;
     }
 };
 
