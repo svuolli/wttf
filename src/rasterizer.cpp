@@ -9,8 +9,6 @@
 #include <vector>
 #include <utility>
 
-// #define WTTF_NO_ANTIALIASING 1
-
 namespace wttf
 {
 
@@ -52,7 +50,6 @@ class rasterizer::implementation
         std::size_t const start_y, std::size_t const end_y,
         std::vector<line_segment> const & lines) const;
 
-#ifndef WTTF_NO_ANTIALIASING
     struct edge_info
     {
         float x1;
@@ -90,7 +87,6 @@ class rasterizer::implementation
     };
 
     edge_info clip(float const y1, line_segment seg) const;
-#endif
 
     std::uint8_t * m_image{nullptr};
     std::size_t m_width{0};
@@ -170,62 +166,6 @@ rasterizer::implementation::create_lines(
 
     return lines;
 }
-
-#ifdef WTTF_NO_ANTIALIASING
-void rasterizer::implementation::rasterize_scanlines(
-        std::size_t start_x, std::size_t end_x,
-        std::size_t start_y, std::size_t end_y,
-        std::vector<line_segment> const & lines) const
-{
-    auto line_it = std::cbegin(lines);
-    std::vector<std::pair<float, int>> scanline_buffer;
-
-    for(auto cy = start_y; cy < end_y; ++cy)
-    {
-        scanline_buffer.clear();
-        auto const pred = [cy=static_cast<float>(cy)](auto const & l)
-        {
-            return l.y2 >= cy;
-        };
-        line_it = std::find_if(line_it, std::cend(lines), pred);
-
-        for(auto i = line_it; i != std::cend(lines); ++i)
-        {
-            if(i->y1 >= static_cast<float>(cy))
-                continue;
-
-            auto const d = (cy - i->y1) / (i->y2 - i->y1);
-            auto const x = i->x1 + d*(i->x2 - i->x1);
-            scanline_buffer.emplace_back(x, i->winding);
-        }
-
-        auto const compare_sline = [](auto const & a, auto const & b)
-        {
-            return a.first < b.first;
-        };
-        std::sort(
-            std::begin(scanline_buffer), std::end(scanline_buffer),
-            compare_sline);
-
-        auto winding = 0;
-        auto sbuf_it = std::cbegin(scanline_buffer);
-        for(auto cx = start_x; cx < end_x; ++cx)
-        {
-            while(
-                sbuf_it != std::cend(scanline_buffer) &&
-                sbuf_it->first <= static_cast<float>(cx))
-            {
-                winding += sbuf_it->second;
-                ++sbuf_it;
-            }
-
-            m_image[cy * m_stride + cx] =
-                (winding != 0) ? 0xFF : 0;
-        }
-    }
-}
-
-#else /* WTTF_NO_ANTIALIASING */
 
 void rasterizer::implementation::rasterize_scanlines(
         std::size_t const start_x, std::size_t const end_x,
@@ -339,7 +279,6 @@ rasterizer::implementation::clip(float const y1, line_segment seg) const
 
     return {x1, x2, h};
 }
-#endif /* WTTF_NO_ANTIALIASING */
 
 /* Class: rasterizer */
 rasterizer::rasterizer() = default;
