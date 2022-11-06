@@ -25,12 +25,12 @@ use with data you don't trust.
 
 ## Building
 
-Building and using wttf requires C++ compiler, compliant with C++17 standard.
-For building, you need also CMake version 3.20.0 or newer, and a build tool
-that CMake supports.
+Building and using wttf requires a C++ compiler, compliant with the C++17
+standard. For building, you need also CMake version 3.20.0 or newer, and a
+build tool that CMake supports.
 
 The wttf library itself does not depend on any other libraries than the C++
-standard library. The shipped examples depends on libfmt and libpng.
+standard library. The shipped examples depends on libfmt, libpng and libicu.
 
 If you have CMake 3.24.0 or newer, you can build wttf using the shipped CMake
 presets (CMakePresets.json):
@@ -57,7 +57,7 @@ An example to rasterize one glyph:
 // ...
 
 // wttf does not do file access, a std::vector<std::byte> with a contents
-// of a font fileis required by the typeface constructor.
+// of a font file is required by the typeface constructor.
 std::vector<std::byte> font_file_contents = read_file_contents("fontfile.ttf");
 
 // Construct a typeface object. This is the central type of wttf. With
