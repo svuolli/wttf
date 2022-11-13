@@ -10,6 +10,7 @@ shape::shape(
     m_min_x{min_x}, m_min_y{min_y},
     m_max_x{max_x}, m_max_y{max_y}
 {
+    m_uninitialzed = false;
     if(contours)
     {
         m_contours.reserve(contours);
@@ -23,6 +24,7 @@ shape::shape(shape const & other, wttf::transform const & t)
 
 void shape::add_contour(std::size_t s)
 {
+    m_uninitialzed = false;
     m_contours.emplace_back();
 
     if(s)
@@ -42,10 +44,10 @@ void shape::add_shape(shape const & s, wttf::transform const & t)
 {
     auto const min_p = t.apply(s.m_min_x, s.m_min_y);
     auto const max_p = t.apply(s.m_max_x, s.m_max_y);
-    m_min_x = empty() ? min_p.first : std::min(min_p.first, m_min_x);
-    m_min_y = empty() ? min_p.second : std::min(min_p.second, m_min_y);
-    m_max_x = empty() ? max_p.first : std::max(max_p.first, m_max_x);
-    m_max_y = empty() ? max_p.second : std::max(max_p.second, m_max_y);
+    m_min_x = m_uninitialzed ? min_p.first : std::min(min_p.first, m_min_x);
+    m_min_y = m_uninitialzed ? min_p.second : std::min(min_p.second, m_min_y);
+    m_max_x = m_uninitialzed ? max_p.first : std::max(max_p.first, m_max_x);
+    m_max_y = m_uninitialzed ? max_p.second : std::max(max_p.second, m_max_y);
 
     m_contours.reserve(m_contours.size() + s.num_contours());
 

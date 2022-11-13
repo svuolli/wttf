@@ -95,6 +95,7 @@ class WTTF_EXPORT shape
     float m_max_x;
     float m_max_y;
     bool m_flat{true};
+    bool m_uninitialzed{true};
 };
 
 } /* namespace wttf */
