@@ -25,29 +25,6 @@
 namespace
 {
 
-class profiling_point
-{
-    public:
-    profiling_point() = delete;
-    profiling_point(profiling_point const &) = delete;
-    profiling_point(profiling_point &&) = delete;
-
-    profiling_point(std::string_view const & name) :
-        m_name(name),
-        m_start(std::chrono::high_resolution_clock::now())
-    {}
-
-    ~profiling_point()
-    {
-        auto const end = std::chrono::high_resolution_clock::now();
-        fmt::print("Profiling: name={}, elapsed={}\n", m_name, end-m_start);
-    }
-
-    private:
-    std::string_view m_name;
-    std::chrono::high_resolution_clock::time_point m_start;
-};
-
 void usage(char const * program_name)
 {
     std::cerr <<
@@ -64,8 +41,6 @@ void usage(char const * program_name)
 
 wttf::typeface load_font(std::filesystem::path const & file)
 {
-    profiling_point p{__FUNCTION__};
-
     using iterator = std::istreambuf_iterator<char>;
     std::ifstream fs{file, std::ios::binary};
     auto contents = std::vector<std::byte>{};
@@ -78,8 +53,6 @@ wttf::typeface load_font(std::filesystem::path const & file)
 
 icu::UnicodeString load_text_file(std::filesystem::path const & file)
 {
-    profiling_point p{__FUNCTION__};
-
     using iterator = std::istreambuf_iterator<char>;
     std::ifstream fs{file, std::ios::binary};
     auto contents = std::string{};
@@ -151,8 +124,6 @@ layout_line create_line(
 text_layout create_text_layout(
     icu::UnicodeString const & str, wttf::typeface const & font, float scale)
 {
-    profiling_point p{__FUNCTION__};
-
     auto res = std::vector<layout_line>{};
     auto left_edge = std::numeric_limits<float>::max();
     auto right_edge = std::numeric_limits<float>::min();
@@ -186,8 +157,6 @@ text_layout create_text_layout(
 wttf::shape create_shape(
     text_layout const & layout, wttf::typeface const & font, float scale)
 {
-    profiling_point p{__FUNCTION__};
-
     auto const metrics = font.metrics().scaled(scale);
     auto const shape_width = std::ceil(layout.width());
     auto const shape_height = std::ceil(
@@ -218,7 +187,6 @@ wttf::shape create_shape(
 
 wttf::shape draw_text(icu::UnicodeString const & text, wttf::typeface const & font, float scale)
 {
-    profiling_point p{__FUNCTION__};
     auto const layout = create_text_layout(text, font, scale);
     return create_shape(layout, font, scale);
 }
@@ -233,7 +201,6 @@ int main(int argc, char const * argv[])
         return 1;
     }
 
-    profiling_point p1{"main1"};
     auto const typeface = load_font(argv[1]);
     auto const font_size = std::stof(argv[2]);
     auto const text = load_text_file(argv[3]);
@@ -254,14 +221,6 @@ int main(int argc, char const * argv[])
 
     rasterizer.rasterize(shape, -shape.min_x(), -shape.min_y());
     save_png(argv[4], image_data.data(), image_width, image_height);
-
-    profiling_point p2{"print-out"};
-    fmt::print(
-        "shape bounding box: ({}, {}), ({}, {})\n",
-        shape.min_x(), shape.min_y(),
-        shape.max_x(), shape.max_y());
-
-    fmt::print("Image size: {}, {}\n", image_width, image_height);
 
     return 0;
 }
