@@ -162,7 +162,6 @@ wttf::shape create_shape(
     auto const shape_height = std::ceil(
         (metrics.height() * layout.lines.size()) +
         (metrics.line_gap * (layout.lines.size()-1)));
-    auto const scale_matrix = wttf::matrix_2x2{scale, 0.0f, 0.0f, scale};
 
     auto res = wttf::shape{0.0f, 0.0f, shape_width, shape_height, 1};
     auto v_pos =
@@ -175,8 +174,8 @@ wttf::shape create_shape(
         auto const indent = (shape_width - line_width) / 2.0f;
         for(auto const & g: line.glyphs)
         {
-            auto const transform =
-                wttf::transform{scale_matrix, indent+g.horizontal_pos, v_pos};
+            auto const transform = wttf::transform::from_scale_translate(
+                scale, {indent+g.horizontal_pos, v_pos});
             auto const s = font.glyph_shape(g.glyph_index);
             res.add_shape(s, transform);
         }

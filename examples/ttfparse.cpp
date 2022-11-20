@@ -125,9 +125,8 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
         return {};
 
     auto result = wttf::shape{};
-    auto t = wttf::transform{};
     auto constexpr scale = 1.0f/25.0f;
-    t.m[0] = t.m[3] = scale;
+    auto h_pos = 0.0f;
     auto prev_glyph = std::uint16_t{0};
     auto total_kern = 0.0f;
 
@@ -142,9 +141,11 @@ wttf::shape draw_text(wttf::typeface const & typeface, std::string const & str)
         auto const kern = typeface.kerning(prev_glyph, g_index);
         total_kern += kern;
 
-        t.tx += kern * scale;
-        result.add_shape(shape, t);
-        t.tx += metrics.advance * scale;
+        h_pos += kern * scale;
+        result.add_shape(
+            shape,
+            wttf::transform::from_scale_translate(scale, {h_pos, 0.0f}));
+        h_pos += metrics.advance * scale;
 
         prev_glyph = g_index;
     }

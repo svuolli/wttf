@@ -44,10 +44,10 @@ void shape::add_shape(shape const & s, wttf::transform const & t)
 {
     auto const min_p = t.apply(s.m_min_x, s.m_min_y);
     auto const max_p = t.apply(s.m_max_x, s.m_max_y);
-    m_min_x = m_uninitialzed ? min_p.first : std::min(min_p.first, m_min_x);
-    m_min_y = m_uninitialzed ? min_p.second : std::min(min_p.second, m_min_y);
-    m_max_x = m_uninitialzed ? max_p.first : std::max(max_p.first, m_max_x);
-    m_max_y = m_uninitialzed ? max_p.second : std::max(max_p.second, m_max_y);
+    m_min_x = m_uninitialzed ? min_p.x : std::min(min_p.x, m_min_x);
+    m_min_y = m_uninitialzed ? min_p.y : std::min(min_p.y, m_min_y);
+    m_max_x = m_uninitialzed ? max_p.x : std::max(max_p.x, m_max_x);
+    m_max_y = m_uninitialzed ? max_p.y : std::max(max_p.y, m_max_y);
 
     m_contours.reserve(m_contours.size() + s.num_contours());
 
@@ -59,7 +59,7 @@ void shape::add_shape(shape const & s, wttf::transform const & t)
         for(auto const & v1: cont)
         {
             auto const & v2 = t.apply(v1.x, v1.y);
-            add_vertex(v2.first, v2.second, v1.on_curve);
+            add_vertex(v2.x, v2.y, v1.on_curve);
         }
     }
 }
@@ -72,25 +72,25 @@ void shape::transform(wttf::transform const & t)
     auto const minp = t.apply(m_min_x, m_min_y);
     auto const maxp = t.apply(m_max_x, m_max_y);
 
-    m_min_x = minp.first;
-    m_min_y = minp.second;
-    m_max_x = maxp.first;
-    m_max_y = maxp.second;
+    m_min_x = minp.x;
+    m_min_y = minp.y;
+    m_max_x = maxp.x;
+    m_max_y = maxp.y;
 
     for(auto & cont: m_contours)
     {
         for(auto & v1: cont)
         {
             auto v2 = t.apply(v1.x, v1.y);
-            v1.x = v2.first;
-            v1.y = v2.second;
+            v1.x = v2.x;
+            v1.y = v2.y;
         }
     }
 }
 
 void shape::scale(float sx, float sy)
 {
-    transform({{sx, 0.0f, 0.0f, sy}, 0.0f, 0.0f});
+    transform({sx, 0.0f, 0.0f, sy, 0.0f, 0.0f});
 }
 
 shape shape::flatten(float const flatness) const

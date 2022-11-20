@@ -534,19 +534,19 @@ shape typeface::implementation::composite_glyph_shape(
         flags = data.read<std::uint16_t>();
         auto glyph_index = data.read<std::uint16_t>();
 
-        auto t = transform{};
+        auto p = point{0.0f, 0.0f};
 
         if(flags & composite_glyph_flags::args_are_xy_values)
         {
             if(flags & composite_glyph_flags::arg_1_and_arg_2_are_words)
             {
-                t.tx = data.read<std::int16_t>();
-                t.ty = data.read<std::int16_t>();
+                p.x = data.read<std::int16_t>();
+                p.y = data.read<std::int16_t>();
             }
             else
             {
-                t.tx = data.read<std::int8_t>();
-                t.ty = data.read<std::int8_t>();
+                p.x = data.read<std::int8_t>();
+                p.y = data.read<std::int8_t>();
             }
         }
         else
@@ -566,23 +566,31 @@ shape typeface::implementation::composite_glyph_shape(
         if(flags & composite_glyph_flags::we_have_a_scale)
         {
             auto const scale = data.read<std::int16_t>()/16384.0f;
-            t.m[0] = scale;
-            t.m[3] = scale;
+            auto const t = transform::from_scale_translate(scale, p);
+            result.add_shape(glyph_shape(glyph_index), t);
         }
         else if(flags & composite_glyph_flags::we_have_x_and_y_scale)
         {
-            t.m[0] = data.read<std::int16_t>()/16384.0f;
-            t.m[3] = data.read<std::int16_t>()/16384.0f;
+            auto const sx = data.read<std::int16_t>()/16384.0f;
+            auto const sy = data.read<std::int16_t>()/16384.0f;
+            auto const t = transform::from_scale_translate({sx, sy}, p);
+            result.add_shape(glyph_shape(glyph_index), t);
         }
         else if(flags & composite_glyph_flags::we_have_a_two_by_two)
         {
-            for(auto & e: t.m)
+            auto m = std::array<float, 4>{};
+            for(auto & e: m)
             {
                 e = data.read<std::int16_t>()/16384.0f;
             }
+            auto const t = transform{m[0], m[1], m[2], m[3], p.x, p.y};
+            result.add_shape(glyph_shape(glyph_index), t);
         }
-
-        result.add_shape(glyph_shape(glyph_index), t);
+        else
+        {
+            auto const t = transform::from_scale_translate(1.0f, p);
+            result.add_shape(glyph_shape(glyph_index), t);
+        }
     }
 
     return result;

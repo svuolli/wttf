@@ -66,8 +66,7 @@ wttf::shape draw_text(
         return {};
 
     auto result = wttf::shape{};
-    auto t = wttf::transform{};
-    t.m[0] = t.m[3] = scale;
+    auto h_pos = 0.0f;
     auto prev_glyph = std::uint16_t{0};
 
     auto const unicode_string = icu::UnicodeString::fromUTF8(str);
@@ -80,9 +79,11 @@ wttf::shape draw_text(
         auto const metrics = typeface.metrics(g_index);
         auto const kern = typeface.kerning(prev_glyph, g_index);
 
-        t.tx += kern * scale;
-        result.add_shape(shape, t);
-        t.tx += metrics.advance * scale;
+        h_pos += kern * scale;
+        result.add_shape(
+            shape,
+            wttf::transform::from_scale_translate(scale, {h_pos, 0.0f}));
+        h_pos += metrics.advance * scale;
 
         prev_glyph = g_index;
     }

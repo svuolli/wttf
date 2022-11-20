@@ -70,7 +70,7 @@ class WTTF_EXPORT shape
 
     [[nodiscard]] shape scaled(float sx, float sy) const
     {
-        return transformed({{sx, 0.0f, 0.0f, sy}, 0.0f, 0.0f});
+        return transformed({sx, 0.0f, 0.0f, sy, 0.0f, 0.0f});
     }
 
     [[nodiscard]] shape scaled(float scale)
