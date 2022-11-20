@@ -1,30 +1,63 @@
 #include <wttf/typeface.hpp>
-#include "font_data.hpp"
+#include "typeface_p.hpp"
 
 #include <functional>
 
 namespace wttf
 {
 
-template <typename T> T typeface::get(std::size_t offset) const
-{
-    return m_data->get<T>(offset);
-}
-
+/* class: typeface */
 typeface::typeface() = default;
 typeface::typeface(typeface const &) = default;
 
 typeface::typeface(std::vector<std::byte> && data):
-    typeface{std::make_shared<font_data const>(std::move(data)), 0}
+    typeface{
+        std::make_shared<font_data const>(
+            std::forward<std::vector<std::byte>>(data)),
+        0}
 {}
-
-#if WTTF_FONT_COLLECTION_IMPLEMENTED
-typeface::typeface(font_collection const & collection, std::size_t index):
-    typeface{collection.m_data, collection.offset(index)}
-{}
-#endif
 
 typeface::typeface(
+    std::shared_ptr<font_data const> const & data, std::size_t offset):
+    m_impl{std::make_shared<implementation>(data, offset)}
+{}
+
+typeface::~typeface() = default;
+
+typeface & typeface::operator=(typeface const &) = default;
+
+typeface::operator bool() const
+{
+    return m_impl != nullptr;
+}
+
+std::size_t typeface::glyph_index(unsigned int codepoint) const
+{
+    return m_impl->glyph_index(codepoint);
+}
+
+shape typeface::glyph_shape(std::uint16_t index) const
+{
+    return m_impl->glyph_shape(index);
+}
+
+glyph_metrics typeface::metrics(std::uint16_t index) const
+{
+    return m_impl->metrics(index);
+}
+
+font_metrics const & typeface::metrics() const
+{
+    return m_impl->metrics();
+}
+
+float typeface::kerning(std::uint16_t glyph1, std::uint16_t glyph2) const
+{
+    return m_impl->kerning(glyph1, glyph2);
+}
+
+/* class: typeface::implementation */
+typeface::implementation::implementation(
     std::shared_ptr<font_data const> const & data, std::size_t offset):
     m_data{data},
     m_data_offset{offset}
@@ -58,13 +91,13 @@ typeface::typeface(
     switch(get<std::uint16_t>(m_cmap_index))
     {
         case 0:
-            m_glyph_index_fn = &typeface::format0_glyph_index;
+            m_glyph_index_fn = &implementation::format0_glyph_index;
             break;
         case 4:
-            m_glyph_index_fn = &typeface::format4_glyph_index;
+            m_glyph_index_fn = &implementation::format4_glyph_index;
             break;
         case 6:
-            m_glyph_index_fn = &typeface::format6_glyph_index;
+            m_glyph_index_fn = &implementation::format6_glyph_index;
             break;
 
         default:
@@ -79,10 +112,10 @@ typeface::typeface(
     switch(get<std::uint16_t>(head + 50))
     {
         case 0:
-            m_glyph_offset_fn = &typeface::format0_glyph_offset;
+            m_glyph_offset_fn = &implementation::format0_glyph_offset;
             break;
         case 1:
-            m_glyph_offset_fn = &typeface::format1_glyph_offset;
+            m_glyph_offset_fn = &implementation::format1_glyph_offset;
             break;
 
         default:
@@ -93,7 +126,6 @@ typeface::typeface(
 
     auto const maxp = find_table("maxp");
     m_num_glyphs = maxp ? get<std::uint16_t>(maxp + 4) : 0xFFFF;
-
     m_loca = find_table("loca");
     m_glyf = find_table("glyf");
     m_hmtx = find_table("hmtx");
@@ -150,19 +182,19 @@ typeface::typeface(
             }
         }
     }
+
 }
 
-typeface::~typeface() = default;
-
-typeface & typeface::operator=(const typeface &) = default;
-
-std::size_t typeface::glyph_index(unsigned int codepoint) const
+std::size_t typeface::implementation::glyph_index(
+    unsigned int codepoint) const
 {
     return
-        m_glyph_index_fn ? std::invoke(m_glyph_index_fn, this, codepoint) : 0;
+        m_glyph_index_fn ?
+        std::invoke(m_glyph_index_fn, this, codepoint) :
+        0u;
 }
 
-shape typeface::glyph_shape(std::uint16_t glyph_index) const
+shape typeface::implementation::glyph_shape(std::uint16_t glyph_index) const
 {
     auto const glyph_offs = glyph_offset(glyph_index);
     if(!glyph_offs)
@@ -181,7 +213,7 @@ shape typeface::glyph_shape(std::uint16_t glyph_index) const
     return {};
 }
 
-glyph_metrics typeface::metrics(std::uint16_t glyph_index) const
+glyph_metrics typeface::implementation::metrics(std::uint16_t glyph_index) const
 {
     auto adv = 0.0f;
     auto lsb = 0.0f;
@@ -212,7 +244,13 @@ glyph_metrics typeface::metrics(std::uint16_t glyph_index) const
     return {lsb, adv, x_min, y_min, x_max, y_max};
 }
 
-float typeface::kerning(std::uint16_t glyph1, std::uint16_t glyph2) const
+font_metrics const & typeface::implementation::metrics() const
+{
+    return m_metrics;
+}
+
+float typeface::implementation::kerning(
+    std::uint16_t glyph1, std::uint16_t glyph2) const
 {
     if(m_kern == 0)
     {
@@ -234,7 +272,26 @@ float typeface::kerning(std::uint16_t glyph1, std::uint16_t glyph2) const
     return val->second;
 }
 
-std::uint16_t typeface::format0_glyph_index(unsigned int codepoint) const
+std::uint32_t typeface::implementation::find_table(char const * tag) const
+{
+    auto const t = tag_from_c_string(tag);
+    auto const num_tables = get<std::uint16_t>(m_data_offset+4);
+
+    for(auto i = 0u; i != num_tables; ++i)
+    {
+        auto const offs = m_data_offset + 12 + (i*table_entry::byte_size);
+        auto const entry = get<table_entry>(offs);
+        if(entry.tag == t)
+        {
+            return entry.offset;
+        }
+    }
+
+    return 0u;
+}
+
+std::uint16_t typeface::implementation::format0_glyph_index(
+    unsigned int codepoint) const
 {
     auto const length = get<std::uint16_t>(m_cmap_index + 2);
     if(codepoint < length-6)
@@ -244,7 +301,8 @@ std::uint16_t typeface::format0_glyph_index(unsigned int codepoint) const
     return 0;
 }
 
-std::uint16_t typeface::format4_glyph_index(unsigned int codepoint) const
+std::uint16_t typeface::implementation::format4_glyph_index(
+    unsigned int codepoint) const
 {
     if(codepoint > 0xFFFF) // Format 4 only handles BPM
     {
@@ -297,7 +355,8 @@ std::uint16_t typeface::format4_glyph_index(unsigned int codepoint) const
         end_code + offset + (codepoint-start)*2 + seg_count*6 + 2 + 2*item);
 }
 
-std::uint16_t typeface::format6_glyph_index(unsigned int codepoint) const
+std::uint16_t typeface::implementation::format6_glyph_index(
+    unsigned int codepoint) const
 {
     auto const first_code = get<std::uint16_t>(m_cmap_index + 6);
     auto const entry_count = get<std::uint16_t>(m_cmap_index + 8);
@@ -311,7 +370,8 @@ std::uint16_t typeface::format6_glyph_index(unsigned int codepoint) const
     return 0;
 }
 
-std::uint32_t typeface::format0_glyph_offset(std::uint16_t glyph_index) const
+std::uint32_t  typeface::implementation::format0_glyph_offset(
+    std::uint16_t glyph_index) const
 {
     auto const g1 = m_glyf + get<std::uint16_t>(m_loca + glyph_index * 2) * 2;
     auto const g2 = m_glyf + get<std::uint16_t>(m_loca + glyph_index * 2 + 2) * 2;
@@ -319,7 +379,8 @@ std::uint32_t typeface::format0_glyph_offset(std::uint16_t glyph_index) const
     return g1==g2 ? 0 : g1;
 }
 
-std::uint32_t typeface::format1_glyph_offset(std::uint16_t glyph_index) const
+std::uint32_t typeface::implementation::format1_glyph_offset(
+    std::uint16_t glyph_index) const
 {
     auto const g1 = m_glyf + get<std::uint32_t>(m_loca + glyph_index * 4);
     auto const g2 = m_glyf + get<std::uint32_t>(m_loca + glyph_index * 4 + 4);
@@ -327,36 +388,17 @@ std::uint32_t typeface::format1_glyph_offset(std::uint16_t glyph_index) const
     return g1==g2 ? 0 : g1;
 }
 
-std::uint32_t typeface::glyph_offset(std::uint16_t glyph_index) const
+std::uint32_t typeface::implementation::glyph_offset(
+    std::uint16_t glyph_index) const
 {
-    if(glyph_index >= m_num_glyphs || m_glyph_offset_fn == nullptr)
-    {
-        return 0;
-    }
-
-    return std::invoke(m_glyph_offset_fn, this, glyph_index);
+    return
+        (glyph_index >= m_num_glyphs || m_glyph_offset_fn == nullptr) ?
+        0u :
+        std::invoke(m_glyph_offset_fn, this, glyph_index);
 }
 
-
-std::uint32_t typeface::find_table(char const * tag) const
-{
-    auto const t = tag_from_c_string(tag);
-    auto const num_tables = get<std::uint16_t>(m_data_offset+4);
-
-    for(auto i = 0u; i != num_tables; ++i)
-    {
-        auto const offs = m_data_offset + 12 + (i*table_entry::byte_size);
-        auto const entry = get<table_entry>(offs);
-        if(entry.tag == t)
-        {
-            return entry.offset;
-        }
-    }
-
-    return 0u;
-}
-
-shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
+shape typeface::implementation::simple_glyph_shape(
+        std::uint32_t const glyph_offset) const
 {
     auto const gh = get<glyph_header>(glyph_offset);
     auto const number_of_contours =
@@ -477,7 +519,8 @@ shape typeface::simple_glyph_shape(std::uint32_t const glyph_offset) const
     return s;
 }
 
-shape typeface::composite_glyph_shape(std::uint32_t const glyph_offset) const
+shape typeface::implementation::composite_glyph_shape(
+        std::uint32_t const glyph_offset) const
 {
     auto data = m_data->create_cursor(glyph_offset+10);
 

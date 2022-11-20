@@ -192,7 +192,7 @@ struct font_data
     font_data(font_data &&) = delete;
 
     font_data(std::vector<std::byte> && data):
-        bytes{std::move(data)}
+        bytes{std::forward<std::vector<std::byte>>(data)}
     {}
 
     ~font_data() = default;
