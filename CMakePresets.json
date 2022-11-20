@@ -5,6 +5,9 @@
         "minor": 24,
         "patch": 0
     },
+    "include": [
+        "cmake/gh-presets.json"
+    ],
     "configurePresets": [
         {
             "name": "Debug",
