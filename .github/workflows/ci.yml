@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  BUILD_PRESET: Release
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        compiler:
+          - llvm
+          - gcc
+        include:
+          - os: windows-latest
+            compiler: msvc
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+          vcvarsall: ${{ contains(matrix.os, 'windows') }}
+          cmake: true
+          ninja: true
+
+      - name: Configure CMake
+        run: cmake --preset=${{ env.BUILD_PRESET }}
+
+      - name: Build
+        run: cmake --build --preset=${{ env.BUILD_PRESET }}
